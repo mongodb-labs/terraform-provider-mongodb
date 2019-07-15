@@ -34,6 +34,10 @@ fmtcheck:
 errcheck:
 	@sh -c "'$(CURDIR)/scripts/errcheck.sh'"
 
+lint:
+	golint -set_exit_status ./...
+	GOGC=30 golangci-lint run ./...
+
 vendor-status:
 	@govendor status
 
@@ -59,13 +63,13 @@ ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
 endif
 	@$(MAKE) -C $(GOPATH)/src/$(WEBSITE_REPO) website-provider-test PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
 
-.PHONY: build test testacc vet fmt fmtcheck errcheck vendor-status test-compile website website-test
+.PHONY: build test testacc vet fmt fmtcheck errcheck lint vendor-status test-compile website website-test
 
 clean:
 	rm -rf out
 	go clean ./...
 
-build: fmtcheck
+build: fmtcheck errcheck lint
 	mkdir -p out
 	go build -o terraform-provider-$(PKG_NAME)
 

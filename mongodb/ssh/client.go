@@ -3,13 +3,14 @@ package ssh
 import (
 	"bytes"
 	"fmt"
-	"github.com/MihaiBojin/terraform-provider-mongodb/mongodb/util"
 	"io"
 	"io/ioutil"
 	"log"
 	"os"
 	"strings"
 	"sync"
+
+	"github.com/MihaiBojin/terraform-provider-mongodb/mongodb/util"
 
 	"github.com/hashicorp/terraform/communicator/remote"
 	tfssh "github.com/hashicorp/terraform/communicator/ssh"
@@ -58,7 +59,7 @@ func (c *Client) connect() error {
 	return nil
 }
 
-// Upload uploads all contents from the specified io.Reader to the remote path
+// UploadData uploads all contents from the specified io.Reader to the remote path
 func (c *Client) UploadData(remotePath string, input io.Reader) (res Result) {
 	// ensure we correctly retrieve the output associated with this command
 	c.mutex.Lock()

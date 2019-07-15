@@ -69,7 +69,7 @@
       <option name="workingDir" value="" />
       <envs />
     </TaskOptions>
-    <TaskOptions isEnabled="false">
+    <TaskOptions isEnabled="true">
       <option name="arguments" value="run --disable=typecheck $FileDir$" />
       <option name="checkSyntaxErrors" value="true" />
       <option name="description" />
@@ -91,6 +91,7 @@
         <env name="GOROOT" value="$GOROOT$" />
         <env name="GOPATH" value="$GOPATH$" />
         <env name="PATH" value="$GoBinDirs$" />
+        <env name="GOGC" value="30" />
       </envs>
     </TaskOptions>
     <TaskOptions isEnabled="true">
