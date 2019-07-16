@@ -40,3 +40,17 @@ func WithOpsManagerSchema() map[string]*schema.Schema {
 		},
 	}
 }
+
+
+// WithAutomationSchema appends AutomationAgentConfigSchema schema to the specified schema map
+func WithAutomationSchema() map[string]*schema.Schema {
+	return map[string]*schema.Schema{
+		"automation": {
+			Type:     schema.TypeList,
+			Required: true,
+			MaxItems: 1,
+			Elem:     types.AutomationAgentConfigSchema,
+		},
+	}
+}
+

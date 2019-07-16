@@ -2,7 +2,6 @@ package mongodb
 
 import (
 	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/types"
-
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
 )
@@ -13,8 +12,9 @@ func Provider() terraform.ResourceProvider {
 	return &schema.Provider{
 		Schema: providerSchema,
 		ResourcesMap: map[string]*schema.Resource{
-			"mongodb_process":    resourceMdbProcess(),
-			"mongodb_opsmanager": resourceMdbOpsManager(),
+			"mongodb_process":          resourceMdbProcess(),
+			"mongodb_opsmanager":       resourceMdbOpsManager(),
+			"mongodb_automation_agent": resourceAutomationAgent(),
 		},
 		ConfigureFunc: providerConfigure,
 	}
