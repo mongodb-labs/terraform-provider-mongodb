@@ -2,14 +2,15 @@ package mongodb
 
 import (
 	"fmt"
+	"log"
+	"path"
+	"path/filepath"
+
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/opsmanagerconfig"
 	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/ssh"
 	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/types"
 	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/util"
-	"log"
-	"path"
-	"path/filepath"
 )
 
 func resourceAutomationAgent() *schema.Resource {
@@ -58,7 +59,7 @@ func resourceMdbAutomationAgentCreate(data *schema.ResourceData, meta interface{
 	ssh.PanicOnError(client.RunCommand(conn.SudoPrefix(cmd)))
 
 	// Set correct permissions for directories
-	cmd = fmt.Sprintf("sudo chown `whoami` %s %s", automationConfig.AgentDir, automationConfig.LogPath)
+	cmd = fmt.Sprintf("chown `whoami` %s %s", automationConfig.AgentDir, automationConfig.LogPath)
 	ssh.PanicOnError(client.RunCommand(conn.SudoPrefix(cmd)))
 
 	// download the automation agent binary on the local host
@@ -76,18 +77,18 @@ func resourceMdbAutomationAgentCreate(data *schema.ResourceData, meta interface{
 	ssh.PanicOnError(client.RunCommand(cmd))
 	log.Printf("[DEBUG] unpacked the binary in: %s", automationConfig.AgentDir)
 
-	// TODO: get the API key and groupID from client
-	// modify automation agent config: baseUrl, ApiKey, and groupId must be set in the file along with any specified overrides
+	// TODO: get the API key and projectID from client
+	// modify automation agent config: baseUrl, ApiKey, and projectID must be set in the file along with any specified overrides
 	err =
 		updatePropertiesFile(client, conn, automationConfig.ConfigFilename(), func(props *opsmanagerconfig.PropertiesFile) {
-			props.SetPropertyValue(automationConfig.GetAutomationConfigTag("GroupId"), automationConfig.GroupId)
-			props.SetComments(automationConfig.GetAutomationConfigTag("GroupId"), []string{"", commentString, ""})
+			props.SetPropertyValue(automationConfig.GetAutomationConfigTag("ProjectID"), automationConfig.ProjectID)
+			props.SetComments(automationConfig.GetAutomationConfigTag("ProjectID"), []string{"", commentString, ""})
 
-			props.SetPropertyValue(automationConfig.GetAutomationConfigTag("ApiKey"), automationConfig.ApiKey)
-			props.SetComments(automationConfig.GetAutomationConfigTag("ApiKey"), []string{"", commentString})
+			props.SetPropertyValue(automationConfig.GetAutomationConfigTag("APIKey"), automationConfig.APIKey)
+			props.SetComments(automationConfig.GetAutomationConfigTag("APIKey"), []string{"", commentString})
 
-			props.SetPropertyValue(automationConfig.GetAutomationConfigTag("BaseUrl"), automationConfig.BaseUrl)
-			props.SetComments(automationConfig.GetAutomationConfigTag("BaseUrl"), []string{"", commentString})
+			props.SetPropertyValue(automationConfig.GetAutomationConfigTag("BaseURL"), automationConfig.BaseURL)
+			props.SetComments(automationConfig.GetAutomationConfigTag("BaseURL"), []string{"", commentString})
 			for prop, val := range automationConfig.Overrides {
 				props.SetPropertyValue(prop, val.(string))
 			}

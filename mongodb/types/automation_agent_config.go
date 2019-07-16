@@ -1,18 +1,20 @@
 package types
 
 import (
-	"github.com/hashicorp/terraform/helper/schema"
 	"path"
 	"reflect"
+
+	"github.com/hashicorp/terraform/helper/schema"
 )
 
+// AutomationAgentConfig holder for Automation Agent Config
 type AutomationAgentConfig struct {
 	Binary    string                 `json:"binary,omitempty"`
-	BaseUrl   string                 `json:"baseurl,omitempty" automation:"mmsBaseUrl"`
+	BaseURL   string                 `json:"baseurl,omitempty" automation:"mmsBaseUrl"`
 	AgentDir  string                 `json:"agentdir,omitempty"`
 	LogPath   string                 `json:"logpath,omitempty"`
-	GroupId   string                 `json:"group_id,omitempty" automation:"mmsGroupId"`
-	ApiKey    string                 `json:"api_key,omitempty" automation:"mmsApiKey"`
+	ProjectID string                 `json:"project_id,omitempty" automation:"mmsGroupId"`
+	APIKey    string                 `json:"api_key,omitempty" automation:"mmsApiKey"`
 	Overrides map[string]interface{} `json:"overrides,omitempty"`
 }
 
@@ -31,13 +33,13 @@ func ReadAutomationAgentConfig(list []interface{}) AutomationAgentConfig {
 		cfg.LogPath = v
 	}
 	if v, ok := ReadString(data, "baseurl"); ok {
-		cfg.BaseUrl = v
+		cfg.BaseURL = v
 	}
-	if v, ok := ReadString(data, "group_id"); ok {
-		cfg.GroupId = v
+	if v, ok := ReadString(data, "project_id"); ok {
+		cfg.ProjectID = v
 	}
 	if v, ok := ReadString(data, "api_key"); ok {
-		cfg.ApiKey = v
+		cfg.APIKey = v
 	}
 	if v, ok := ReadStringMap(data, "overrides"); ok {
 		cfg.Overrides = v
@@ -52,7 +54,7 @@ var AutomationAgentConfigSchema = &schema.Resource{
 			Type:     schema.TypeString,
 			Required: true,
 		},
-		"group_id": {
+		"project_id": {
 			Type:     schema.TypeString,
 			Required: true,
 		},

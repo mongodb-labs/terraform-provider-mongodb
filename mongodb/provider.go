@@ -1,9 +1,9 @@
 package mongodb
 
 import (
-	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/types"
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/types"
 )
 
 // Provider for MongoDB resources
