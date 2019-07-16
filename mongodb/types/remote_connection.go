@@ -96,10 +96,12 @@ var RemoteConnectionSchema = &schema.Resource{
 		"private_key": {
 			Type:     schema.TypeString,
 			Optional: true,
+			Default:  "",
 		},
 		"host_key": {
 			Type:     schema.TypeString,
 			Optional: true,
+			Default:  "",
 		},
 	},
 }
