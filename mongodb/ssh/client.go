@@ -10,7 +10,7 @@ import (
 	"strings"
 	"sync"
 
-	"github.com/MihaiBojin/terraform-provider-mongodb/mongodb/util"
+	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/util"
 
 	"github.com/hashicorp/terraform/communicator/remote"
 	tfssh "github.com/hashicorp/terraform/communicator/ssh"

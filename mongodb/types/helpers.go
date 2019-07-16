@@ -2,8 +2,9 @@ package types
 
 import (
 	"fmt"
-	"github.com/MihaiBojin/terraform-provider-mongodb/mongodb/util"
+
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/util"
 )
 
 // StrictUnionOrFatal convenience method which throws a fatal error if duplicate keys are found while merging multiple terraform schema maps

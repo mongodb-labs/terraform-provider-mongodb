@@ -2,10 +2,11 @@ package config
 
 import (
 	"bytes"
-	"github.com/MihaiBojin/terraform-provider-mongodb/mongodb/util"
 	"io/ioutil"
 	"log"
 	"os"
+
+	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/util"
 
 	"gopkg.in/yaml.v2"
 )

@@ -1,4 +1,4 @@
-module github.com/MihaiBojin/terraform-provider-mongodb
+module github.com/mongodb-labs/terraform-provider-mongodb
 
 go 1.12
 

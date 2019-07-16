@@ -1,8 +1,8 @@
 package types
 
 import (
-	"github.com/MihaiBojin/terraform-provider-mongodb/mongodb/ssh"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/ssh"
 )
 
 // SSHAgentSchema constructs a terraform schema map representing SSH agent configuration params

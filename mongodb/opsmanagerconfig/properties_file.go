@@ -3,9 +3,10 @@ package opsmanagerconfig
 import (
 	"bufio"
 	"bytes"
-	"github.com/MihaiBojin/terraform-provider-mongodb/mongodb/util"
 	"log"
 	"strings"
+
+	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/util"
 
 	"github.com/magiconair/properties"
 )

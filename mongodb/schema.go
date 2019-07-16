@@ -1,8 +1,8 @@
 package mongodb
 
 import (
-	"github.com/MihaiBojin/terraform-provider-mongodb/mongodb/types"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/types"
 )
 
 // WithHostSchema appends host schema to the specified schema map

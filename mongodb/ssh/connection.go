@@ -2,7 +2,8 @@ package ssh
 
 import (
 	"encoding/json"
-	"github.com/MihaiBojin/terraform-provider-mongodb/mongodb/util"
+
+	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/util"
 
 	"github.com/hashicorp/terraform/terraform"
 )

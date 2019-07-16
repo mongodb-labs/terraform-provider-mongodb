@@ -1,7 +1,7 @@
 package mongodb
 
 import (
-	"github.com/MihaiBojin/terraform-provider-mongodb/mongodb/ssh"
+	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/ssh"
 )
 
 // ProviderConfig provider configuration object

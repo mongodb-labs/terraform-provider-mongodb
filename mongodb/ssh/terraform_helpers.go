@@ -2,8 +2,9 @@ package ssh
 
 import (
 	"fmt"
-	"github.com/MihaiBojin/terraform-provider-mongodb/mongodb/util"
 	"log"
+
+	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/util"
 
 	"github.com/hashicorp/terraform/helper/resource"
 )

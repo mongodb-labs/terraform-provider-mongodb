@@ -1,8 +1,8 @@
 package types
 
 import (
-	"github.com/MihaiBojin/terraform-provider-mongodb/mongodb/ssh"
 	"github.com/hashicorp/terraform/helper/schema"
+	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/ssh"
 )
 
 // SSHBastionSchema constructs a terraform schema map representing SSH bastion host connection params

@@ -6,10 +6,10 @@ import (
 	"strconv"
 	"testing"
 
-	"github.com/MihaiBojin/terraform-provider-mongodb/mongodb/types"
 	_ "github.com/hashicorp/terraform/helper/acctest"
 	"github.com/hashicorp/terraform/helper/resource"
 	"github.com/hashicorp/terraform/terraform"
+	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/types"
 )
 
 func TestAccDeployProcess(t *testing.T) {

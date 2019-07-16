@@ -6,10 +6,10 @@ import (
 	"path"
 	"path/filepath"
 
-	"github.com/MihaiBojin/terraform-provider-mongodb/mongodb/config"
-	"github.com/MihaiBojin/terraform-provider-mongodb/mongodb/ssh"
-	"github.com/MihaiBojin/terraform-provider-mongodb/mongodb/types"
-	"github.com/MihaiBojin/terraform-provider-mongodb/mongodb/util"
+	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/config"
+	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/ssh"
+	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/types"
+	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/util"
 
 	"github.com/hashicorp/terraform/helper/schema"
 )
