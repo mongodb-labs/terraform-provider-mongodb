@@ -63,7 +63,7 @@ func resourceMdbAutomationAgentCreate(data *schema.ResourceData, meta interface{
 
 	// download the automation agent binary on the remote host
 	filename := fmt.Sprintf("mongodb-mms-automation-agent-%s.linux_x86_64.tar.gz", automationConfig.Version)
-	cmd = fmt.Sprintf("curl -O \"%s/download/agent/automation/%s\"", automationConfig.BaseURL, filename)
+	cmd = fmt.Sprintf("curl -O \"%s/download/agent/automation/%s\"", automationConfig.MMSBaseURL, filename)
 	ssh.PanicOnError(client.RunCommand(conn.SudoPrefix(cmd)))
 
 	// unpack the binary
@@ -75,11 +75,11 @@ func resourceMdbAutomationAgentCreate(data *schema.ResourceData, meta interface{
 	// modify automation agent config: baseUrl, ApiKey, and projectID must be set in the file along with any specified overrides
 	err =
 		updatePropertiesFile(client, conn, automationConfig.ConfigFilename(), func(props *types.PropertiesFile) {
-			props.SetPropertyValue(automationConfig.GetAutomationConfigTag("ProjectID"), automationConfig.ProjectID)
-			props.SetComments(automationConfig.GetAutomationConfigTag("ProjectID"), []string{"", commentString, ""})
+			props.SetPropertyValue(automationConfig.GetAutomationConfigTag("MMSGroupID"), automationConfig.MMSGroupID)
+			props.SetComments(automationConfig.GetAutomationConfigTag("MMSGroupID"), []string{"", commentString, ""})
 
-			props.SetPropertyValue(automationConfig.GetAutomationConfigTag("APIKey"), automationConfig.APIKey)
-			props.SetPropertyValue(automationConfig.GetAutomationConfigTag("BaseURL"), automationConfig.BaseURL)
+			props.SetPropertyValue(automationConfig.GetAutomationConfigTag("MMSAgentAPIKey"), automationConfig.MMSAgentAPIKey)
+			props.SetPropertyValue(automationConfig.GetAutomationConfigTag("MMSBaseURL"), automationConfig.MMSBaseURL)
 			for prop, val := range automationConfig.Overrides {
 				props.SetPropertyValue(prop, val.(string))
 			}
