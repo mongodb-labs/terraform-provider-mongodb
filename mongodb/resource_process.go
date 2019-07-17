@@ -81,7 +81,9 @@ func resourceMdbProcessCreate(data *schema.ResourceData, meta interface{}) error
 		BindIP: dbConfig.BindIP,
 	}
 	cfg.Storage.Engine = "wiredTiger"
-	cfg.Storage.WiredTiger.EngineConfig.CacheSizeGB = dbConfig.WiredTigerCacheSizeGB
+	if dbConfig.WiredTigerCacheSizeGB > 0 {
+		cfg.Storage.WiredTiger.EngineConfig.CacheSizeGB = dbConfig.WiredTigerCacheSizeGB
+	}
 	cfg.SystemLog.LogAppend = true
 	cfg.SystemLog.Path = logPath
 	cfg.SystemLog.Destination = "file"
