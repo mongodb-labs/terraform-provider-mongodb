@@ -4,12 +4,12 @@ ENV DEBIAN_FRONTEND noninteractive
 
 # Download dependencies
 RUN apt-get update && apt-get install -y \
+    curl \
     iproute2 \
     libcurl4 \
     net-tools \
     openssh-server \
     sudo \
-    curl \
     ;
 
 # Configure SSHD
