@@ -23,7 +23,7 @@ func ReadAutomationAgentConfig(list []interface{}) AutomationAgentConfig {
 	// read the connection params
 	cfg := &AutomationAgentConfig{}
 	data := list[0].(map[string]interface{})
-	if v, ok := ReadString(data, "agentdir"); ok {
+	if v, ok := ReadString(data, "workdir"); ok {
 		cfg.WorkDir = v
 	}
 	if v, ok := ReadString(data, "logpath"); ok {
@@ -57,6 +57,7 @@ var AutomationAgentConfigSchema = &schema.Resource{
 		"version": {
 			Type:     schema.TypeString,
 			Optional: true,
+			Default:  "latest",
 		},
 		"project_id": {
 			Type:     schema.TypeString,

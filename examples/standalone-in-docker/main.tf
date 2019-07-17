@@ -70,7 +70,6 @@ resource "mongodb_opsmanager" "opsman" {
       "mms.mail.ssl"                  = "false"
       "automation.versions.directory" = "/data/automation/mongodb-releases"
       "automation.versions.source"    = "mongodb"
-      "automation.agent.version"      = "10.2.0.5851-1"
     }
   }
 }
@@ -83,7 +82,6 @@ resource "mongodb_automation_agent" "automation_agent" {
   }
 
   automation {
-    version       = "10.2.0.5851-1"
     baseurl       = mongodb_opsmanager.opsman.opsmanager[0].central_url
     project_id    = "fakeProjectId1"
     agent_api_key = "fakeApiKey"

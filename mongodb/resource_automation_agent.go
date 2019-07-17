@@ -47,6 +47,9 @@ func resourceMdbAutomationAgentCreate(data *schema.ResourceData, meta interface{
 		return fmt.Errorf("could not create a SSH client: %v", err)
 	}
 
+	// install curl
+	ssh.PanicOnError(client.RunCommand(conn.SudoPrefix("apt-get install curl")))
+
 	// attempt to create directories if not already present
 	cmd := fmt.Sprintf("mkdir -p %s %s", automationConfig.WorkDir, automationConfig.LogPath)
 	ssh.PanicOnError(client.RunCommand(conn.SudoPrefix(cmd)))
