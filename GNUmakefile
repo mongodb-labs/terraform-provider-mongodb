@@ -63,13 +63,13 @@ ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
 endif
 	@$(MAKE) -C $(GOPATH)/src/$(WEBSITE_REPO) website-provider-test PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
 
-.PHONY: build test testacc vet fmt fmtcheck errcheck lint vendor-status test-compile website website-test
+.PHONY: build test testacc vet fmt fmtcheck errcheck lint vendor-status test-compile website website-test clean-terraform terraform-ipa remove-qa-container link-git-hooks
 
 clean:
 	rm -rf out
 	go clean ./...
 
-build: fmtcheck errcheck lint
+build: fmtcheck errcheck lint test
 	mkdir -p out
 	go build -o terraform-provider-$(PKG_NAME)
 
@@ -89,3 +89,9 @@ clean-terraform: remove-qa-container
 remove-qa-container:
 	@echo "Removing any existing QA containers..."
 	$(MAKE) -C docker remove-all-containers
+
+# GIT hooks
+link-git-hooks:
+	@echo "==> Installing all git hooks..."
+	find .git/hooks -type l -exec rm {} \;
+	find .githooks -type f -exec ln -sf ../../{} .git/hooks/ \;
