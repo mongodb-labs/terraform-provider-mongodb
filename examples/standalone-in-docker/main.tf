@@ -82,8 +82,8 @@ resource "mongodb_automation_agent" "automation_agent" {
   }
 
   automation {
-    baseurl       = mongodb_opsmanager.opsman.opsmanager[0].central_url
-    project_id    = "fakeProjectId1"
-    agent_api_key = "fakeApiKey"
+    mms_base_url      = mongodb_opsmanager.opsman.opsmanager[0].central_url
+    mms_group_id      = "fakeProjectId1"
+    mms_agent_api_key = "fakeApiKey"
   }
 }
