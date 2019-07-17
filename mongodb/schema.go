@@ -11,7 +11,6 @@ func WithHostSchema() map[string]*schema.Schema {
 		"host": {
 			Type:     schema.TypeList,
 			Required: true,
-			MaxItems: 1,
 			Elem:     types.RemoteConnectionSchema,
 		},
 	}
@@ -23,7 +22,6 @@ func WithMongoDSchema() map[string]*schema.Schema {
 		"mongod": {
 			Type:     schema.TypeList,
 			Required: true,
-			MaxItems: 1,
 			Elem:     types.ProcessConfigSchema,
 		},
 	}
@@ -35,7 +33,6 @@ func WithOpsManagerSchema() map[string]*schema.Schema {
 		"opsmanager": {
 			Type:     schema.TypeList,
 			Required: true,
-			MaxItems: 1,
 			Elem:     types.OpsManagerConfigSchema,
 		},
 	}
@@ -47,7 +44,6 @@ func WithAutomationSchema() map[string]*schema.Schema {
 		"automation": {
 			Type:     schema.TypeList,
 			Required: true,
-			MaxItems: 1,
 			Elem:     types.AutomationAgentConfigSchema,
 		},
 	}

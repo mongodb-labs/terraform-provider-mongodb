@@ -1,4 +1,4 @@
-package opsmanagerconfig
+package types
 
 import (
 	"bufio"

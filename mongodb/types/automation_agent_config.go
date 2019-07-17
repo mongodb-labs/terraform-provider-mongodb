@@ -9,12 +9,12 @@ import (
 
 // AutomationAgentConfig holder for Automation Agent Config
 type AutomationAgentConfig struct {
-	Binary    string                 `json:"binary,omitempty"`
 	BaseURL   string                 `json:"baseurl,omitempty" automation:"mmsBaseUrl"`
-	AgentDir  string                 `json:"agentdir,omitempty"`
+	WorkDir   string                 `json:"workdir,omitempty"`
+	Version   string                 `json:"version,omitempty"`
 	LogPath   string                 `json:"logpath,omitempty"`
 	ProjectID string                 `json:"project_id,omitempty" automation:"mmsGroupId"`
-	APIKey    string                 `json:"api_key,omitempty" automation:"mmsApiKey"`
+	APIKey    string                 `json:"agent_api_key,omitempty" automation:"mmsApiKey"`
 	Overrides map[string]interface{} `json:"overrides,omitempty"`
 }
 
@@ -23,11 +23,8 @@ func ReadAutomationAgentConfig(list []interface{}) AutomationAgentConfig {
 	// read the connection params
 	cfg := &AutomationAgentConfig{}
 	data := list[0].(map[string]interface{})
-	if v, ok := ReadString(data, "binary"); ok {
-		cfg.Binary = v
-	}
 	if v, ok := ReadString(data, "agentdir"); ok {
-		cfg.AgentDir = v
+		cfg.WorkDir = v
 	}
 	if v, ok := ReadString(data, "logpath"); ok {
 		cfg.LogPath = v
@@ -38,7 +35,10 @@ func ReadAutomationAgentConfig(list []interface{}) AutomationAgentConfig {
 	if v, ok := ReadString(data, "project_id"); ok {
 		cfg.ProjectID = v
 	}
-	if v, ok := ReadString(data, "api_key"); ok {
+	if v, ok := ReadString(data, "version"); ok {
+		cfg.Version = v
+	}
+	if v, ok := ReadString(data, "agent_api_key"); ok {
 		cfg.APIKey = v
 	}
 	if v, ok := ReadStringMap(data, "overrides"); ok {
@@ -54,15 +54,15 @@ var AutomationAgentConfigSchema = &schema.Resource{
 			Type:     schema.TypeString,
 			Required: true,
 		},
+		"version": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
 		"project_id": {
 			Type:     schema.TypeString,
 			Required: true,
 		},
-		"api_key": {
-			Type:     schema.TypeString,
-			Required: true,
-		},
-		"binary": {
+		"agent_api_key": {
 			Type:     schema.TypeString,
 			Required: true,
 		},
@@ -71,7 +71,7 @@ var AutomationAgentConfigSchema = &schema.Resource{
 			Optional: true,
 			Default:  "/var/log/mongodb-mms-automation",
 		},
-		"agentdir": {
+		"workdir": {
 			Type:     schema.TypeString,
 			Optional: true,
 			Default:  "/var/lib/mongodb-mms-automation",
@@ -85,7 +85,7 @@ var AutomationAgentConfigSchema = &schema.Resource{
 
 // ConfigFilename returns the path to the process's config filename
 func (cfg AutomationAgentConfig) ConfigFilename() string {
-	return path.Join(cfg.AgentDir, "local.config")
+	return path.Join(cfg.WorkDir, "local.config")
 }
 
 // GetAutomationConfigTag given a valid AutomationConfig struct field name, returns the specified automation tag

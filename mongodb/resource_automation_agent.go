@@ -3,11 +3,9 @@ package mongodb
 import (
 	"fmt"
 	"log"
-	"path"
-	"path/filepath"
+	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/opsmanagerconfig"
 	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/ssh"
 	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/types"
 	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/util"
@@ -28,11 +26,6 @@ func resourceAutomationAgent() *schema.Resource {
 			Delete: schema.DefaultTimeout(util.DefaultTimeout),
 		},
 		Schema: resourceSchema,
-		Importer: &schema.ResourceImporter{
-			State: func(data *schema.ResourceData, meta interface{}) ([]*schema.ResourceData, error) {
-				return []*schema.ResourceData{data}, nil
-			},
-		},
 	}
 }
 
@@ -55,40 +48,35 @@ func resourceMdbAutomationAgentCreate(data *schema.ResourceData, meta interface{
 	}
 
 	// attempt to create directories if not already present
-	cmd := fmt.Sprintf("mkdir -p %s %s", automationConfig.AgentDir, automationConfig.LogPath)
+	cmd := fmt.Sprintf("mkdir -p %s %s", automationConfig.WorkDir, automationConfig.LogPath)
+	ssh.PanicOnError(client.RunCommand(conn.SudoPrefix(cmd)))
+
+	cmd = fmt.Sprintf("cd %s", automationConfig.WorkDir)
 	ssh.PanicOnError(client.RunCommand(conn.SudoPrefix(cmd)))
 
 	// Set correct permissions for directories
-	cmd = fmt.Sprintf("chown `whoami` %s %s", automationConfig.AgentDir, automationConfig.LogPath)
+	cmd = fmt.Sprintf("chown `whoami` %s %s", automationConfig.WorkDir, automationConfig.LogPath)
 	ssh.PanicOnError(client.RunCommand(conn.SudoPrefix(cmd)))
 
-	// download the automation agent binary on the local host
-	localFile, err := util.DownloadFile(automationConfig.Binary)
-	util.PanicOnNonNilErr(err)
-	defer util.LogError(localFile.Close)
-	log.Printf("[DEBUG] downloaded automation agent binary to: %s", localFile.Name())
-
-	// upload the binary
-	remoteFilePath := path.Join(automationConfig.AgentDir, filepath.Base(localFile.Name()))
-	ssh.PanicOnError(client.UploadFile(remoteFilePath, localFile))
+	// download the automation agent binary on the remote host
+	filename := fmt.Sprintf("mongodb-mms-automation-agent-%s.linux_x86_64.tar.gz", automationConfig.Version)
+	cmd = fmt.Sprintf("curl -O \"%s/download/agent/automation/%s\"", automationConfig.BaseURL, filename)
+	ssh.PanicOnError(client.RunCommand(conn.SudoPrefix(cmd)))
 
 	// unpack the binary
-	cmd = fmt.Sprintf("tar -C %s -xvzf %s --strip 1", automationConfig.AgentDir, remoteFilePath)
+	cmd = fmt.Sprintf("tar -C %s -xvzf %s --strip 1", automationConfig.WorkDir, filename)
 	ssh.PanicOnError(client.RunCommand(cmd))
-	log.Printf("[DEBUG] unpacked the binary in: %s", automationConfig.AgentDir)
+	log.Printf("[DEBUG] unpacked the binary in: %s", automationConfig.WorkDir)
 
 	// TODO: get the API key and projectID from client
 	// modify automation agent config: baseUrl, ApiKey, and projectID must be set in the file along with any specified overrides
 	err =
-		updatePropertiesFile(client, conn, automationConfig.ConfigFilename(), func(props *opsmanagerconfig.PropertiesFile) {
+		updatePropertiesFile(client, conn, automationConfig.ConfigFilename(), func(props *types.PropertiesFile) {
 			props.SetPropertyValue(automationConfig.GetAutomationConfigTag("ProjectID"), automationConfig.ProjectID)
 			props.SetComments(automationConfig.GetAutomationConfigTag("ProjectID"), []string{"", commentString, ""})
 
 			props.SetPropertyValue(automationConfig.GetAutomationConfigTag("APIKey"), automationConfig.APIKey)
-			props.SetComments(automationConfig.GetAutomationConfigTag("APIKey"), []string{"", commentString})
-
 			props.SetPropertyValue(automationConfig.GetAutomationConfigTag("BaseURL"), automationConfig.BaseURL)
-			props.SetComments(automationConfig.GetAutomationConfigTag("BaseURL"), []string{"", commentString})
 			for prop, val := range automationConfig.Overrides {
 				props.SetPropertyValue(prop, val.(string))
 			}
@@ -98,9 +86,15 @@ func resourceMdbAutomationAgentCreate(data *schema.ResourceData, meta interface{
 	// start the automation agent
 	cmd = fmt.Sprintf("nohup ./mongodb-mms-automation-agent --config=%s >> %s/automation-agent-fatal.log 2>&1 &", automationConfig.ConfigFilename(), automationConfig.LogPath)
 	ssh.PanicOnError(client.RunCommand(cmd))
-	log.Printf("[DEBUG] started automation agent from configuration file %s", automationConfig.ConfigFilename())
 
-	// TODO check if it's running
+	// check if it's running
+	cmd = fmt.Sprintf("(pgrep mongodb-mms-automation-agent && echo \"Started\" ) || echo \"Stopped\"")
+	res := client.RunCommand(conn.SudoPrefix(cmd))
+	ssh.PanicOnError(res)
+	if strings.Contains(res.Stdout, "Stopped") {
+		return fmt.Errorf("Error starting automation agent")
+	}
+	log.Printf("[DEBUG] started automation agent from configuration file %s", automationConfig.ConfigFilename())
 
 	return resourceMdbAutomationAgentRead(data, meta)
 }

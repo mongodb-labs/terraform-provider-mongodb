@@ -83,13 +83,9 @@ resource "mongodb_automation_agent" "automation_agent" {
   }
 
   automation {
-    binary     = "${mongodb_opsmanager.opsman.opsmanager[0].central_url}/download/agent/automation/mongodb-mms-automation-agent-10.2.0.5851-1.linux_x86_64.tar.gz"
-    baseurl    = mongodb_opsmanager.opsman.opsmanager[0].central_url
-    project_id = "fakeProjectId1"
-    api_key    = "fakeApiKey"
-    overrides = {
-      serverPoolKey                 = "fakeServerPoolKeyShouldBeReplaced"
-      sslMMSServerClientCertificate = "fakeCertificatePathSettingShouldBeAdded"
-    }
+    version       = "10.2.0.5851-1"
+    baseurl       = mongodb_opsmanager.opsman.opsmanager[0].central_url
+    project_id    = "fakeProjectId1"
+    agent_api_key = "fakeApiKey"
   }
 }
