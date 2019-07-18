@@ -70,16 +70,17 @@ func resourceMdbAutomationAgentCreate(data *schema.ResourceData, meta interface{
 	log.Printf("[DEBUG] unpacked the binary in: %s", automationConfig.WorkDir)
 
 	// initialize a client without auth
-	resolver := httpclient.NewURLResolverWithPrefix(automationConfig.MMSBaseURL, opsmanager.PublicAPIPrefix)
+	apiURL := fmt.Sprintf("http://127.0.0.1:%d", automationConfig.OpsManagerPort)
+	resolver := httpclient.NewURLResolverWithPrefix(apiURL, opsmanager.PublicAPIPrefix)
 	withResolver := opsmanager.WithResolver(resolver)
 	withHTTPClient := opsmanager.WithHTTPClient(httpclient.NewClient())
 	omAPIClientNoAuth := opsmanager.NewClient(withResolver, withHTTPClient)
 
 	// create the first user
-	user := opsmanager.User{Username: "firstuser", Password: "firstpassword", FirstName: "first", LastName: "last", EmailAddress: ""}
+	user := opsmanager.User{Username: "firstuser", Password: "password", FirstName: "first", LastName: "last"}
 	apiFirstUserResp, err := omAPIClientNoAuth.CreateFirstUser(user, "0.0.0.1/0")
 	if err != nil {
-		return fmt.Errorf("Failed to create first user using Private Cloud Go Client: %v", err)
+		return fmt.Errorf("Failed to create first user: %v", err)
 	}
 	log.Printf("[DEBUG] Created first OM user using the Private Cloud Go Client: %s", apiFirstUserResp.User)
 

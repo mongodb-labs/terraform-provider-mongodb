@@ -18,6 +18,7 @@ type OpsManagerConfig struct {
 	CentralURL        string                 `json:"central_url,omitempty" opsmanager:"mms.centralUrl"`
 	Overrides         map[string]interface{} `json:"overrides,omitempty"`
 	RegisterFirstUser bool                   `json:"register_first_user,omitempty"`
+	FirstUserPassword string                 `json:"first_user_password,omitempty"`
 }
 
 // ReadOpsManagerConfig parses a singleton list of OpsManagerConfigSchema resources as a OpsManagerConfig type
@@ -48,6 +49,9 @@ func ReadOpsManagerConfig(list []interface{}) OpsManagerConfig {
 	}
 	if v, ok := ReadBool(data, "register_first_user"); ok {
 		cfg.RegisterFirstUser = v
+	}
+	if v, ok := ReadString(data, "first_user_password"); ok {
+		cfg.FirstUserPassword = v
 	}
 	return *cfg
 }
@@ -89,6 +93,10 @@ var OpsManagerConfigSchema = &schema.Resource{
 			Type:     schema.TypeBool,
 			Optional: true,
 			Default:  true,
+		},
+		"first_user_password": {
+			Type:     schema.TypeString,
+			Optional: true,
 		},
 	},
 }

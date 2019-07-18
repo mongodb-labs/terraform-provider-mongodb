@@ -15,6 +15,7 @@ type AutomationAgentConfig struct {
 	LogPath        string                 `json:"logpath,omitempty"`
 	MMSGroupID     string                 `json:"mms_group_id,omitempty" automation:"mmsGroupId"`
 	MMSAgentAPIKey string                 `json:"mms_agent_api_key,omitempty" automation:"mmsApiKey"`
+	OpsManagerPort int                    `json:"ops_manager_port,omitempty"`
 	Overrides      map[string]interface{} `json:"overrides,omitempty"`
 }
 
@@ -43,6 +44,9 @@ func ReadAutomationAgentConfig(list []interface{}) AutomationAgentConfig {
 	}
 	if v, ok := ReadStringMap(data, "overrides"); ok {
 		cfg.Overrides = v
+	}
+	if v, ok := ReadInt(data, "ops_manager_port"); ok {
+		cfg.OpsManagerPort = v
 	}
 	return *cfg
 }
@@ -79,6 +83,10 @@ var AutomationAgentConfigSchema = &schema.Resource{
 		},
 		"overrides": {
 			Type:     schema.TypeMap,
+			Optional: true,
+		},
+		"ops_manager_port": {
+			Type:     schema.TypeInt,
 			Optional: true,
 		},
 	},
