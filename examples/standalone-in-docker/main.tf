@@ -42,8 +42,9 @@ resource "random_string" "encryptionkey" {
 }
 
 resource "random_string" "globalownerpassword" {
-  length  = 12
-  special = true
+  length      = 12
+  special     = true
+  min_special = 1
 }
 
 

@@ -2,9 +2,11 @@ package mongodb
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"log"
 	"math/rand"
+	"net/url"
 	"path"
 	"path/filepath"
 	"strconv"
@@ -140,7 +142,7 @@ func resourceMdbOpsManagerCreate(data *schema.ResourceData, meta interface{}) er
 
 	// wait for Ops Manager to start
 	if err := ssh.WaitForOpenPort(ssh.NewOpenPortCheckerFunc(client), omConfig.Port); err != nil {
-		return err
+		return fmt.Errorf("failed waiting for ops manager to start at port %d: %v", omConfig.Port, err)
 	}
 	log.Printf("[DEBUG] confirmed connection to the Ops Manager port: %d", omConfig.Port)
 
@@ -149,24 +151,43 @@ func resourceMdbOpsManagerCreate(data *schema.ResourceData, meta interface{}) er
 		// create the first user via the client with noauth
 		apiURL := fmt.Sprintf("http://%s:%d", conn.Hostname, omConfig.OpsManagerPort)
 		resolver := httpclient.NewURLResolverWithPrefix(apiURL, opsmanager.PublicAPIPrefix)
-		apiFirstUserResp, err := createFirstUser(resolver, omConfig.FirstUserPassword)
+
+		// create the first user
+		omAPIClientNoAuth := opsmanager.NewDefaultClient(resolver)
+		user := opsmanager.User{Username: omConfig.Username, Password: omConfig.FirstUserPassword, FirstName: omConfig.Firstname, LastName: omConfig.Lastname}
+		apiFirstUserResp, err := omAPIClientNoAuth.CreateFirstUser(user, url.QueryEscape("0.0.0.1/0"))
 		if err != nil {
-			return fmt.Errorf("Failed to create first user: %v", err)
+			return fmt.Errorf("failed to create first user: %v", err)
 		}
 		log.Printf("[DEBUG] Created first OM user: %s", apiFirstUserResp.User.Username)
 
 		// create the first project via the client with digestAuth, to get projectID and agentAPIKey
-		createOneProjectResp, err := createFirstProject(resolver, apiFirstUserResp.User.Username, apiFirstUserResp.APIKey)
+		omAPIClientDigestAuth := opsmanager.NewClientWithDigestAuth(resolver, apiFirstUserResp.User.Username, apiFirstUserResp.APIKey)
+		projectName := fmt.Sprintf("TerraformProject-%d", rand.Intn(10000000))
+		createOneProjectResp, err := omAPIClientDigestAuth.CreateOneProject(projectName, "")
 		if err != nil {
-			return fmt.Errorf("Failed to create first project using Private Cloud Go Client: %v", err)
+			return fmt.Errorf("failed to create first project: %v", err)
 		}
-		log.Printf("[DEBUG] Created first project using the Private Cloud Go Client. ProjectId, agent API key: %s , %s", createOneProjectResp.ID, createOneProjectResp.AgentAPIKey)
 
-		if err = data.Set("mms_agent_api_key", createOneProjectResp.AgentAPIKey); err != nil {
-			return err
+		omConfig.MMSAgentAPIKey = createOneProjectResp.AgentAPIKey
+		omConfig.MMSGroupID = createOneProjectResp.ID
+
+		stuff, err := json.Marshal(omConfig)
+		if err != nil {
+			return fmt.Errorf("failed to deconstruct OM schema: %v", err)
 		}
-		if err = data.Set("mms_group_id", createOneProjectResp.ID); err != nil {
-			return err
+
+		var deconstructed map[string]interface{}
+
+		if err := json.Unmarshal(stuff, &deconstructed); err != nil {
+			return fmt.Errorf("failed to reconstruct OM schema: %v", err)
+		}
+
+		s := []interface{}{}
+		s = append(s, deconstructed)
+
+		if err = data.Set("opsmanager", s); err != nil {
+			return fmt.Errorf("failed to replace OM config: %v", err)
 		}
 	}
 
@@ -234,23 +255,4 @@ func updatePropertiesFile(client *ssh.Client, conn types.RemoteConnection, remot
 	log.Printf("[DEBUG] uploaded the config file to the remote host, at: %s", remoteFile)
 
 	return nil
-}
-
-func createFirstUser(resolver httpclient.URLResolver, firstPassword string) (resp opsmanager.CreateFirstUserResponse, err error) {
-	// initialize a client without auth
-	omAPIClientNoAuth := opsmanager.NewDefaultClient(resolver)
-
-	// create the first user
-	user := opsmanager.User{Username: "firstuser", Password: firstPassword, FirstName: "first", LastName: "last"}
-	return omAPIClientNoAuth.CreateFirstUser(user, "0.0.0.1/0")
-
-}
-
-func createFirstProject(resolver httpclient.URLResolver, username string, apiKey string) (resp opsmanager.CreateOneProjectResponse, err error) {
-	// initialize a client with auth
-	omAPIClientDigestAuth := opsmanager.NewClientWithDigestAuth(resolver, username, apiKey)
-
-	// create new org/project to get the GroupID
-	projectName := fmt.Sprintf("TerraformProject-%d", rand.Intn(10000000))
-	return omAPIClientDigestAuth.CreateOneProject(projectName, "")
 }

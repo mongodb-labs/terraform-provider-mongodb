@@ -22,6 +22,9 @@ type OpsManagerConfig struct {
 	OpsManagerPort    int                    `json:"ops_manager_port,omitempty"`
 	MMSGroupID        string                 `json:"mms_group_id,omitempty" automation:"mmsGroupId"`
 	MMSAgentAPIKey    string                 `json:"mms_agent_api_key,omitempty" automation:"mmsApiKey"`
+	Username          string                 `json:"om_user_username,omitempty"`
+	Firstname         string                 `json:"om_user_firstname,omitempty"`
+	Lastname          string                 `json:"om_user_lastname,omitempty"`
 }
 
 // ReadOpsManagerConfig parses a singleton list of OpsManagerConfigSchema resources as a OpsManagerConfig type
@@ -64,6 +67,15 @@ func ReadOpsManagerConfig(list []interface{}) OpsManagerConfig {
 	}
 	if v, ok := ReadString(data, "mms_agent_api_key"); ok {
 		cfg.MMSAgentAPIKey = v
+	}
+	if v, ok := ReadString(data, "om_user_username"); ok {
+		cfg.Username = v
+	}
+	if v, ok := ReadString(data, "om_user_firstname"); ok {
+		cfg.Firstname = v
+	}
+	if v, ok := ReadString(data, "om_user_lastname"); ok {
+		cfg.Lastname = v
 	}
 	return *cfg
 }
@@ -113,6 +125,18 @@ var OpsManagerConfigSchema = &schema.Resource{
 		"ops_manager_port": {
 			Type:     schema.TypeInt,
 			Optional: true,
+		}, "ops_user_username": {
+			Type:     schema.TypeString,
+			Optional: true,
+			Default:  "admin",
+		}, "ops_user_firstname": {
+			Type:     schema.TypeString,
+			Optional: true,
+			Default:  "adminFirst",
+		}, "ops_user_lastname": {
+			Type:     schema.TypeString,
+			Optional: true,
+			Default:  "adminLast",
 		},
 		"mms_group_id": {
 			Type:     schema.TypeString,
