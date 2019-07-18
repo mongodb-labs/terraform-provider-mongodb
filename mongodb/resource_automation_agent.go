@@ -67,8 +67,8 @@ func resourceMdbAutomationAgentCreate(data *schema.ResourceData, meta interface{
 	ssh.PanicOnError(sshClient.RunCommand(cmd))
 	log.Printf("[DEBUG] unpacked the binary in: %s", automationConfig.WorkDir)
 
-	opsManagerObj := data.Get("opsmanager").([]interface{})
-	opsManagerProps := types.ReadOpsManagerConfig(opsManagerObj)
+	om := data.Get("opsmanager").([]interface{})
+	opsManagerProps := types.ReadOpsManagerConfig(om)
 
 	// modify automation agent config: baseUrl, ApiKey, and projectID must be set in the file along with any specified overrides
 	err =
