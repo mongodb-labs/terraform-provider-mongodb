@@ -63,7 +63,7 @@ ifeq (,$(wildcard $(GOPATH)/src/$(WEBSITE_REPO)))
 endif
 	@$(MAKE) -C $(GOPATH)/src/$(WEBSITE_REPO) website-provider-test PROVIDER_PATH=$(shell pwd) PROVIDER_NAME=$(PKG_NAME)
 
-.PHONY: build test testacc vet fmt fmtcheck errcheck lint vendor-status test-compile website website-test clean-terraform terraform-ipa remove-qa-container link-git-hooks
+.PHONY: build install test testacc vet fmt fmtcheck errcheck lint vendor-status test-compile website website-test terraform-clean terraform-ipa remove-qa-container link-git-hooks
 
 clean:
 	rm -rf out
@@ -71,20 +71,30 @@ clean:
 
 build: fmtcheck errcheck lint test
 	mkdir -p out
-	go build -o terraform-provider-$(PKG_NAME)
+	go build -o out/terraform-provider-$(PKG_NAME)
+
+install: uninstall build
+	@mkdir -p ~/.terraform.d/plugins
+	@cp out/terraform-provider-$(PKG_NAME) ~/.terraform.d/plugins
+	@echo "==> Installed provider at ~/.terraform.d/plugins/terraform-provider-$(PKG_NAME) ..."
+
+uninstall:
+	@rm -rf ~/.terraform.d/plugins/terraform-provider-$(PKG_NAME)
 
 # Terraform Provider MongoDB: E2E test
 TFDIR=examples/standalone-in-docker
-terraform-ipa: clean-terraform clean build
+terraform-ipa: terraform-clean clean install
 	@echo "Initializing terraform, then applying the plan..."
-	terraform init $(TFDIR)
-	terraform plan $(TFDIR)
-	terraform apply -auto-approve $(TFDIR)
+	cd $(TFDIR); \
+	terraform init; \
+	terraform plan; \
+	terraform apply -auto-approve
 
-clean-terraform: remove-qa-container
+terraform-clean: remove-qa-container
 	@echo "Destroying any existing resources and deleting TF state"
-	-terraform destroy -auto-approve $(TFDIR)
-	@rm -rf .terraform terraform.tfstate terraform.tfstate.backup out *.log
+	-cd $(TFDIR); \
+	terraform destroy -auto-approve; \
+	rm -rf .terraform terraform.tfstate terraform.tfstate.backup *.log
 
 remove-qa-container:
 	@echo "Removing any existing QA containers..."

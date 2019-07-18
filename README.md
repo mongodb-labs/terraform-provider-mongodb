@@ -158,9 +158,7 @@ make debugacc TESTARGS=-test.run=TestMongoDB_unit
 **Make terraform aware of this plugin:**
 
 ```
-make build
-mkdir -p ~/.terraform.d/plugins
-cp terraform-provider-mongodb ~/.terraform.d/plugins
+make install
 ```
 
 **Alternatively, use `.terraformrc`:**
