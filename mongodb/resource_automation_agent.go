@@ -67,15 +67,12 @@ func resourceMdbAutomationAgentCreate(data *schema.ResourceData, meta interface{
 	ssh.PanicOnError(sshClient.RunCommand(cmd))
 	log.Printf("[DEBUG] unpacked the binary in: %s", automationConfig.WorkDir)
 
-	om := data.Get("opsmanager").([]interface{})
-	opsManagerProps := types.ReadOpsManagerConfig(om)
-
 	// modify automation agent config: baseUrl, ApiKey, and projectID must be set in the file along with any specified overrides
 	err =
 		updatePropertiesFile(sshClient, conn, automationConfig.ConfigFilename(), func(props *types.PropertiesFile) {
-			props.SetPropertyValue(automationConfig.GetAutomationConfigTag("MMSGroupID"), opsManagerProps.MMSGroupID)
+			props.SetPropertyValue(automationConfig.GetAutomationConfigTag("MMSGroupID"), automationConfig.MMSGroupID)
 			props.SetComments(automationConfig.GetAutomationConfigTag("MMSGroupID"), []string{"", commentString, ""})
-			props.SetPropertyValue(automationConfig.GetAutomationConfigTag("MMSAgentAPIKey"), opsManagerProps.MMSAgentAPIKey)
+			props.SetPropertyValue(automationConfig.GetAutomationConfigTag("MMSAgentAPIKey"), automationConfig.MMSAgentAPIKey)
 			props.SetPropertyValue(automationConfig.GetAutomationConfigTag("MMSBaseURL"), automationConfig.MMSBaseURL)
 			for prop, val := range automationConfig.Overrides {
 				props.SetPropertyValue(prop, val.(string))

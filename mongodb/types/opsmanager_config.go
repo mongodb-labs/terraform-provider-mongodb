@@ -116,11 +116,13 @@ var OpsManagerConfigSchema = &schema.Resource{
 		},
 		"mms_group_id": {
 			Type:     schema.TypeString,
-			Optional: true,
+			Computed: true,
+			ForceNew: true,
 		},
 		"mms_agent_api_key": {
 			Type:     schema.TypeString,
-			Optional: true,
+			Computed: true,
+			ForceNew: true,
 		},
 	},
 }

@@ -162,8 +162,12 @@ func resourceMdbOpsManagerCreate(data *schema.ResourceData, meta interface{}) er
 		}
 		log.Printf("[DEBUG] Created first project using the Private Cloud Go Client. ProjectId, agent API key: %s , %s", createOneProjectResp.ID, createOneProjectResp.AgentAPIKey)
 
-		omConfig.MMSAgentAPIKey = createOneProjectResp.AgentAPIKey
-		omConfig.MMSGroupID = createOneProjectResp.ID
+		if err = data.Set("mms_agent_api_key", createOneProjectResp.AgentAPIKey); err != nil {
+			return err
+		}
+		if err = data.Set("mms_group_id", createOneProjectResp.ID); err != nil {
+			return err
+		}
 	}
 
 	return resourceMdbOpsManagerRead(data, meta)
