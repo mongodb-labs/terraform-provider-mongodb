@@ -73,3 +73,15 @@ resource "mongodb_opsmanager" "opsman" {
     }
   }
 }
+
+resource "mongodb_automation_agent" "automation_agent" {
+  host {
+    user     = "root"
+    hostname = "127.0.0.1"
+    port     = docker_container.mdb0-0.ports[0].external
+  }
+
+  automation {
+    mms_base_url = mongodb_opsmanager.opsman.opsmanager[0].central_url
+  }
+}

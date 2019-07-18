@@ -10,7 +10,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/opsmanagerconfig"
 	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/ssh"
 	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/types"
 	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/util"
@@ -94,7 +93,7 @@ func resourceMdbOpsManagerCreate(data *schema.ResourceData, meta interface{}) er
 
 	// configure the property overrides (conf-mms.properties)
 	err =
-		updatePropertiesFile(client, conn, omConfig.ConfigOverrideFilename(), func(props *opsmanagerconfig.PropertiesFile) {
+		updatePropertiesFile(client, conn, omConfig.ConfigOverrideFilename(), func(props *types.PropertiesFile) {
 			props.SetPropertyValue(omConfig.GetOpsManagerTag("MongoURI"), omConfig.MongoURI)
 			props.SetComments(omConfig.GetOpsManagerTag("MongoURI"), []string{"", commentString, ""})
 
@@ -108,7 +107,7 @@ func resourceMdbOpsManagerCreate(data *schema.ResourceData, meta interface{}) er
 
 	// configure the port in mms.conf
 	err =
-		updatePropertiesFile(client, conn, omConfig.SysConfigFilename(), func(props *opsmanagerconfig.PropertiesFile) {
+		updatePropertiesFile(client, conn, omConfig.SysConfigFilename(), func(props *types.PropertiesFile) {
 			props.SetPropertyValue(omConfig.GetOpsManagerTag("Port"), strconv.Itoa(omConfig.Port))
 			props.SetComments(omConfig.GetOpsManagerTag("Port"), []string{commentString, ""})
 		})
@@ -184,7 +183,7 @@ func resourceMdbOpsManagerDelete(data *schema.ResourceData, meta interface{}) er
 }
 
 // updatePropertiesFile updates a remote property file, given a set of modifications defined in updateProps
-func updatePropertiesFile(client *ssh.Client, conn types.RemoteConnection, remoteFile string, updateProps func(*opsmanagerconfig.PropertiesFile)) error {
+func updatePropertiesFile(client *ssh.Client, conn types.RemoteConnection, remoteFile string, updateProps func(*types.PropertiesFile)) error {
 	// back up the old file
 	ssh.PanicOnError(client.RunCommand(conn.SudoPrefix(fmt.Sprintf("cp %s %s.backup", remoteFile, remoteFile))))
 	log.Printf("[DEBUG] backed up: %s", remoteFile)
@@ -195,7 +194,7 @@ func updatePropertiesFile(client *ssh.Client, conn types.RemoteConnection, remot
 	log.Printf("[DEBUG] downloaded the file from: %s", remoteFile)
 
 	// parse the configuration into a struct and apply the updates
-	config := opsmanagerconfig.NewPropertiesFile(result.Stdout)
+	config := types.NewPropertiesFile(result.Stdout)
 	updateProps(config)
 	configData, err := config.Write()
 	util.PanicOnNonNilErr(err)
