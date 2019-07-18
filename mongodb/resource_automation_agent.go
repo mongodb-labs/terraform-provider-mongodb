@@ -6,8 +6,6 @@ import (
 	"strings"
 
 	"github.com/hashicorp/terraform/helper/schema"
-	"github.com/mongodb-labs/pcgc/pkg/httpclient"
-	"github.com/mongodb-labs/pcgc/pkg/opsmanager"
 	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/ssh"
 	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/types"
 	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/util"
@@ -69,43 +67,15 @@ func resourceMdbAutomationAgentCreate(data *schema.ResourceData, meta interface{
 	ssh.PanicOnError(sshClient.RunCommand(cmd))
 	log.Printf("[DEBUG] unpacked the binary in: %s", automationConfig.WorkDir)
 
-	// initialize a client without auth
-	apiURL := fmt.Sprintf("http://127.0.0.1:%d", automationConfig.OpsManagerPort)
-	resolver := httpclient.NewURLResolverWithPrefix(apiURL, opsmanager.PublicAPIPrefix)
-	withResolver := opsmanager.WithResolver(resolver)
-	withHTTPClient := opsmanager.WithHTTPClient(httpclient.NewClient())
-	omAPIClientNoAuth := opsmanager.NewClient(withResolver, withHTTPClient)
-
-	// create the first user
-	user := opsmanager.User{Username: "firstuser", Password: "password", FirstName: "first", LastName: "last"}
-	apiFirstUserResp, err := omAPIClientNoAuth.CreateFirstUser(user, "0.0.0.1/0")
-	if err != nil {
-		return fmt.Errorf("Failed to create first user: %v", err)
-	}
-	log.Printf("[DEBUG] Created first OM user using the Private Cloud Go Client: %s", apiFirstUserResp.User)
-
-	// initialize a client with auth
-	withDigestAuth := httpclient.WithDigestAuthentication(apiFirstUserResp.User.Username, apiFirstUserResp.APIKey)
-	withAuthHTTPClient := opsmanager.WithHTTPClient(httpclient.NewClient(withDigestAuth))
-	omAPIClientDigestAuth := opsmanager.NewClient(withResolver, withAuthHTTPClient)
-
-	// create new org/project to get the GroupID
-	createOneProjectResp, err := omAPIClientDigestAuth.CreateOneProject("myproj", "")
-	log.Print("[DEBUG] called CreateFirstProject")
-	if err != nil {
-		return fmt.Errorf("Failed to create first project using Private Cloud Go Client: %v", err)
-	}
-	log.Printf("[DEBUG] Created first project using the Private Cloud Go Client. ProjectId, agent API key: %s , %s", createOneProjectResp.ID, createOneProjectResp.AgentAPIKey)
-
-	automationConfig.MMSAgentAPIKey = createOneProjectResp.AgentAPIKey
-	automationConfig.MMSGroupID = createOneProjectResp.ID
+	opsManagerObj := data.Get("opsmanager").([]interface{})
+	opsManagerProps := types.ReadOpsManagerConfig(opsManagerObj)
 
 	// modify automation agent config: baseUrl, ApiKey, and projectID must be set in the file along with any specified overrides
 	err =
 		updatePropertiesFile(sshClient, conn, automationConfig.ConfigFilename(), func(props *types.PropertiesFile) {
-			props.SetPropertyValue(automationConfig.GetAutomationConfigTag("MMSGroupID"), automationConfig.MMSGroupID)
+			props.SetPropertyValue(automationConfig.GetAutomationConfigTag("MMSGroupID"), opsManagerProps.MMSGroupID)
 			props.SetComments(automationConfig.GetAutomationConfigTag("MMSGroupID"), []string{"", commentString, ""})
-			props.SetPropertyValue(automationConfig.GetAutomationConfigTag("MMSAgentAPIKey"), automationConfig.MMSAgentAPIKey)
+			props.SetPropertyValue(automationConfig.GetAutomationConfigTag("MMSAgentAPIKey"), opsManagerProps.MMSAgentAPIKey)
 			props.SetPropertyValue(automationConfig.GetAutomationConfigTag("MMSBaseURL"), automationConfig.MMSBaseURL)
 			for prop, val := range automationConfig.Overrides {
 				props.SetPropertyValue(prop, val.(string))

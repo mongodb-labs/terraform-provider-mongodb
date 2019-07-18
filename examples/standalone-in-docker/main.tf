@@ -65,6 +65,7 @@ resource "mongodb_opsmanager" "opsman" {
     central_url         = "http://${mongodb_process.mdb_standalone.host.0.hostname}:8080"
     register_first_user = true
     first_user_password = random_string.globalownerpassword.result
+    ops_manager_port    = docker_container.mdb0-0.ports[1].external
 
     overrides = {
       "mms.ignoreInitialUiSetup"      = "true"
@@ -89,8 +90,7 @@ resource "mongodb_automation_agent" "automation_agent" {
   }
 
   automation {
-    ops_manager_port = docker_container.mdb0-0.ports[1].external
-    mms_base_url     = mongodb_opsmanager.opsman.opsmanager[0].central_url
+    mms_base_url = mongodb_opsmanager.opsman.opsmanager[0].central_url
   }
 
 

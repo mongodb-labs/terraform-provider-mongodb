@@ -9,6 +9,9 @@ import (
 	"strconv"
 	"strings"
 
+	"github.com/mongodb-labs/pcgc/pkg/httpclient"
+	"github.com/mongodb-labs/pcgc/pkg/opsmanager"
+
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/ssh"
 	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/types"
@@ -140,6 +143,27 @@ func resourceMdbOpsManagerCreate(data *schema.ResourceData, meta interface{}) er
 	}
 	log.Printf("[DEBUG] confirmed connection to the Ops Manager port: %d", omConfig.Port)
 
+	// create first user if option was passed
+	if omConfig.RegisterFirstUser {
+		// create the first user via the client with noauth
+		apiURL := fmt.Sprintf("http://%s:%d", conn.Hostname, omConfig.OpsManagerPort)
+		apiFirstUserResp, err := createFirstUser(apiURL, omConfig.FirstUserPassword)
+		if err != nil {
+			return fmt.Errorf("Failed to create first user: %v", err)
+		}
+		log.Printf("[DEBUG] Created first OM user: %s", apiFirstUserResp.User.Username)
+
+		// create the first project via the client with digestAuth, to get projectID and agentAPIKey
+		createOneProjectResp, err := createFirstProject(apiURL, apiFirstUserResp.User.Username, apiFirstUserResp.APIKey)
+		if err != nil {
+			return fmt.Errorf("Failed to create first project using Private Cloud Go Client: %v", err)
+		}
+		log.Printf("[DEBUG] Created first project using the Private Cloud Go Client. ProjectId, agent API key: %s , %s", createOneProjectResp.ID, createOneProjectResp.AgentAPIKey)
+
+		omConfig.MMSAgentAPIKey = createOneProjectResp.AgentAPIKey
+		omConfig.MMSGroupID = createOneProjectResp.ID
+	}
+
 	return resourceMdbOpsManagerRead(data, meta)
 }
 
@@ -204,4 +228,31 @@ func updatePropertiesFile(client *ssh.Client, conn types.RemoteConnection, remot
 	log.Printf("[DEBUG] uploaded the config file to the remote host, at: %s", remoteFile)
 
 	return nil
+}
+
+func createFirstUser(apiURL string, firstPassword string) (resp opsmanager.CreateFirstUserResponse, err error) {
+	// initialize a client without auth
+	resolver := httpclient.NewURLResolverWithPrefix(apiURL, opsmanager.PublicAPIPrefix)
+	withResolver := opsmanager.WithResolver(resolver)
+
+	withHTTPClient := opsmanager.WithHTTPClient(httpclient.NewClient())
+	omAPIClientNoAuth := opsmanager.NewClient(withResolver, withHTTPClient)
+
+	// create the first user
+	user := opsmanager.User{Username: "firstuser", Password: firstPassword, FirstName: "first", LastName: "last"}
+	return omAPIClientNoAuth.CreateFirstUser(user, "0.0.0.1/0")
+
+}
+
+func createFirstProject(apiURL string, username string, apiKey string) (resp opsmanager.CreateOneProjectResponse, err error) {
+	// initialize a client with auth
+
+	resolver := httpclient.NewURLResolverWithPrefix(apiURL, opsmanager.PublicAPIPrefix)
+	withResolver := opsmanager.WithResolver(resolver)
+	withDigestAuth := httpclient.WithDigestAuthentication(username, apiKey)
+	withAuthHTTPClient := opsmanager.WithHTTPClient(httpclient.NewClient(withDigestAuth))
+	omAPIClientDigestAuth := opsmanager.NewClient(withResolver, withAuthHTTPClient)
+
+	// create new org/project to get the GroupID
+	return omAPIClientDigestAuth.CreateOneProject("myproj", "")
 }

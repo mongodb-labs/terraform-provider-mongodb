@@ -19,6 +19,9 @@ type OpsManagerConfig struct {
 	Overrides         map[string]interface{} `json:"overrides,omitempty"`
 	RegisterFirstUser bool                   `json:"register_first_user,omitempty"`
 	FirstUserPassword string                 `json:"first_user_password,omitempty"`
+	OpsManagerPort    int                    `json:"ops_manager_port,omitempty"`
+	MMSGroupID        string                 `json:"mms_group_id,omitempty" automation:"mmsGroupId"`
+	MMSAgentAPIKey    string                 `json:"mms_agent_api_key,omitempty" automation:"mmsApiKey"`
 }
 
 // ReadOpsManagerConfig parses a singleton list of OpsManagerConfigSchema resources as a OpsManagerConfig type
@@ -52,6 +55,15 @@ func ReadOpsManagerConfig(list []interface{}) OpsManagerConfig {
 	}
 	if v, ok := ReadString(data, "first_user_password"); ok {
 		cfg.FirstUserPassword = v
+	}
+	if v, ok := ReadInt(data, "ops_manager_port"); ok {
+		cfg.OpsManagerPort = v
+	}
+	if v, ok := ReadString(data, "mms_group_id"); ok {
+		cfg.MMSGroupID = v
+	}
+	if v, ok := ReadString(data, "mms_agent_api_key"); ok {
+		cfg.MMSAgentAPIKey = v
 	}
 	return *cfg
 }
@@ -95,6 +107,18 @@ var OpsManagerConfigSchema = &schema.Resource{
 			Default:  true,
 		},
 		"first_user_password": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+		"ops_manager_port": {
+			Type:     schema.TypeInt,
+			Optional: true,
+		},
+		"mms_group_id": {
+			Type:     schema.TypeString,
+			Optional: true,
+		},
+		"mms_agent_api_key": {
 			Type:     schema.TypeString,
 			Optional: true,
 		},

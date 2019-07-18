@@ -9,14 +9,11 @@ import (
 
 // AutomationAgentConfig holder for Automation Agent Config
 type AutomationAgentConfig struct {
-	MMSBaseURL     string                 `json:"mms_base_url,omitempty" automation:"mmsBaseUrl"`
-	WorkDir        string                 `json:"workdir,omitempty"`
-	Version        string                 `json:"version,omitempty"`
-	LogPath        string                 `json:"logpath,omitempty"`
-	MMSGroupID     string                 `json:"mms_group_id,omitempty" automation:"mmsGroupId"`
-	MMSAgentAPIKey string                 `json:"mms_agent_api_key,omitempty" automation:"mmsApiKey"`
-	OpsManagerPort int                    `json:"ops_manager_port,omitempty"`
-	Overrides      map[string]interface{} `json:"overrides,omitempty"`
+	MMSBaseURL string                 `json:"mms_base_url,omitempty" automation:"mmsBaseUrl"`
+	WorkDir    string                 `json:"workdir,omitempty"`
+	Version    string                 `json:"version,omitempty"`
+	LogPath    string                 `json:"logpath,omitempty"`
+	Overrides  map[string]interface{} `json:"overrides,omitempty"`
 }
 
 // ReadAutomationAgentConfig parses a singleton list of AutomationAgentConfigSchema resources as a AutomationAgentConfig type
@@ -26,12 +23,6 @@ func ReadAutomationAgentConfig(list []interface{}) AutomationAgentConfig {
 	data := list[0].(map[string]interface{})
 	if v, ok := ReadString(data, "mms_base_url"); ok {
 		cfg.MMSBaseURL = v
-	}
-	if v, ok := ReadString(data, "mms_group_id"); ok {
-		cfg.MMSGroupID = v
-	}
-	if v, ok := ReadString(data, "mms_agent_api_key"); ok {
-		cfg.MMSAgentAPIKey = v
 	}
 	if v, ok := ReadString(data, "version"); ok {
 		cfg.Version = v
@@ -45,9 +36,6 @@ func ReadAutomationAgentConfig(list []interface{}) AutomationAgentConfig {
 	if v, ok := ReadStringMap(data, "overrides"); ok {
 		cfg.Overrides = v
 	}
-	if v, ok := ReadInt(data, "ops_manager_port"); ok {
-		cfg.OpsManagerPort = v
-	}
 	return *cfg
 }
 
@@ -57,14 +45,6 @@ var AutomationAgentConfigSchema = &schema.Resource{
 		"mms_base_url": {
 			Type:     schema.TypeString,
 			Required: true,
-		},
-		"mms_group_id": {
-			Type:     schema.TypeString,
-			Optional: true,
-		},
-		"mms_agent_api_key": {
-			Type:     schema.TypeString,
-			Optional: true,
 		},
 		"version": {
 			Type:     schema.TypeString,
@@ -83,10 +63,6 @@ var AutomationAgentConfigSchema = &schema.Resource{
 		},
 		"overrides": {
 			Type:     schema.TypeMap,
-			Optional: true,
-		},
-		"ops_manager_port": {
-			Type:     schema.TypeInt,
 			Optional: true,
 		},
 	},
