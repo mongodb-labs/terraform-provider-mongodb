@@ -56,11 +56,11 @@ var AutomationAgentConfigSchema = &schema.Resource{
 		},
 		"mms_group_id": {
 			Type:     schema.TypeString,
-			Optional: true,
+			Required: true,
 		},
 		"mms_agent_api_key": {
 			Type:     schema.TypeString,
-			Optional: true,
+			Required: true,
 		},
 		"version": {
 			Type:     schema.TypeString,

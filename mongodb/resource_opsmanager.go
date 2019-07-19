@@ -2,12 +2,18 @@ package mongodb
 
 import (
 	"bufio"
+	"encoding/json"
 	"fmt"
 	"log"
+	"math/rand"
+	"net/url"
 	"path"
 	"path/filepath"
 	"strconv"
 	"strings"
+
+	"github.com/mongodb-labs/pcgc/pkg/httpclient"
+	"github.com/mongodb-labs/pcgc/pkg/opsmanager"
 
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/ssh"
@@ -136,9 +142,54 @@ func resourceMdbOpsManagerCreate(data *schema.ResourceData, meta interface{}) er
 
 	// wait for Ops Manager to start
 	if err := ssh.WaitForOpenPort(ssh.NewOpenPortCheckerFunc(client), omConfig.Port); err != nil {
-		return err
+		return fmt.Errorf("failed waiting for ops manager to start at port %d: %v", omConfig.Port, err)
 	}
 	log.Printf("[DEBUG] confirmed connection to the Ops Manager port: %d", omConfig.Port)
+
+	// create first user if option was passed
+	if omConfig.RegisterFirstUser {
+		// create the first user via the client with noauth
+		apiURL := fmt.Sprintf("http://%s:%d", conn.Hostname, omConfig.OpsManagerPort)
+		resolver := httpclient.NewURLResolverWithPrefix(apiURL, opsmanager.PublicAPIPrefix)
+
+		// create the first user
+		omAPIClientNoAuth := opsmanager.NewDefaultClient(resolver)
+		user := opsmanager.User{Username: omConfig.Username, Password: omConfig.FirstUserPassword, FirstName: omConfig.Firstname, LastName: omConfig.Lastname}
+		apiFirstUserResp, err := omAPIClientNoAuth.CreateFirstUser(user, url.QueryEscape("0.0.0.1/0"))
+		if err != nil {
+			return fmt.Errorf("failed to create first user: %v", err)
+		}
+		log.Printf("[DEBUG] Created first OM user: %s", apiFirstUserResp.User.Username)
+
+		// create the first project via the client with digestAuth, to get projectID and agentAPIKey
+		omAPIClientDigestAuth := opsmanager.NewClientWithDigestAuth(resolver, apiFirstUserResp.User.Username, apiFirstUserResp.APIKey)
+		projectName := fmt.Sprintf("TerraformProject-%d", rand.Intn(10000000))
+		createOneProjectResp, err := omAPIClientDigestAuth.CreateOneProject(projectName, "")
+		if err != nil {
+			return fmt.Errorf("failed to create first project: %v", err)
+		}
+
+		omConfig.MMSAgentAPIKey = createOneProjectResp.AgentAPIKey
+		omConfig.MMSGroupID = createOneProjectResp.ID
+
+		stuff, err := json.Marshal(omConfig)
+		if err != nil {
+			return fmt.Errorf("failed to deconstruct OM schema: %v", err)
+		}
+
+		var deconstructed map[string]interface{}
+
+		if err := json.Unmarshal(stuff, &deconstructed); err != nil {
+			return fmt.Errorf("failed to reconstruct OM schema: %v", err)
+		}
+
+		s := []interface{}{}
+		s = append(s, deconstructed)
+
+		if err = data.Set("opsmanager", s); err != nil {
+			return fmt.Errorf("failed to replace OM config: %v", err)
+		}
+	}
 
 	return resourceMdbOpsManagerRead(data, meta)
 }

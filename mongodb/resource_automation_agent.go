@@ -42,39 +42,36 @@ func resourceMdbAutomationAgentCreate(data *schema.ResourceData, meta interface{
 	automationConfig := types.ReadAutomationAgentConfig(automation)
 
 	// create a SSH connection to the remote host
-	client, err := NewSSHClient(providerConfig, conn)
+	sshClient, err := NewSSHClient(providerConfig, conn)
 	if err != nil {
 		return fmt.Errorf("could not create a SSH client: %v", err)
 	}
 
 	// attempt to create directories if not already present
 	cmd := fmt.Sprintf("mkdir -p %s %s", automationConfig.WorkDir, automationConfig.LogPath)
-	ssh.PanicOnError(client.RunCommand(conn.SudoPrefix(cmd)))
-
+	ssh.PanicOnError(sshClient.RunCommand(conn.SudoPrefix(cmd)))
 	cmd = fmt.Sprintf("cd %s", automationConfig.WorkDir)
-	ssh.PanicOnError(client.RunCommand(conn.SudoPrefix(cmd)))
+	ssh.PanicOnError(sshClient.RunCommand(conn.SudoPrefix(cmd)))
 
 	// Set correct permissions for directories
 	cmd = fmt.Sprintf("chown `whoami` %s %s", automationConfig.WorkDir, automationConfig.LogPath)
-	ssh.PanicOnError(client.RunCommand(conn.SudoPrefix(cmd)))
+	ssh.PanicOnError(sshClient.RunCommand(conn.SudoPrefix(cmd)))
 
 	// download the automation agent binary on the remote host
 	filename := fmt.Sprintf("mongodb-mms-automation-agent-%s.linux_x86_64.tar.gz", automationConfig.Version)
 	cmd = fmt.Sprintf("curl -O \"%s/download/agent/automation/%s\"", automationConfig.MMSBaseURL, filename)
-	ssh.PanicOnError(client.RunCommand(conn.SudoPrefix(cmd)))
+	ssh.PanicOnError(sshClient.RunCommand(conn.SudoPrefix(cmd)))
 
 	// unpack the binary
 	cmd = fmt.Sprintf("tar -C %s -xvzf %s --strip 1", automationConfig.WorkDir, filename)
-	ssh.PanicOnError(client.RunCommand(cmd))
+	ssh.PanicOnError(sshClient.RunCommand(cmd))
 	log.Printf("[DEBUG] unpacked the binary in: %s", automationConfig.WorkDir)
 
-	// TODO: get the API key and projectID from client
 	// modify automation agent config: baseUrl, ApiKey, and projectID must be set in the file along with any specified overrides
 	err =
-		updatePropertiesFile(client, conn, automationConfig.ConfigFilename(), func(props *types.PropertiesFile) {
+		updatePropertiesFile(sshClient, conn, automationConfig.ConfigFilename(), func(props *types.PropertiesFile) {
 			props.SetPropertyValue(automationConfig.GetAutomationConfigTag("MMSGroupID"), automationConfig.MMSGroupID)
 			props.SetComments(automationConfig.GetAutomationConfigTag("MMSGroupID"), []string{"", commentString, ""})
-
 			props.SetPropertyValue(automationConfig.GetAutomationConfigTag("MMSAgentAPIKey"), automationConfig.MMSAgentAPIKey)
 			props.SetPropertyValue(automationConfig.GetAutomationConfigTag("MMSBaseURL"), automationConfig.MMSBaseURL)
 			for prop, val := range automationConfig.Overrides {
@@ -85,11 +82,11 @@ func resourceMdbAutomationAgentCreate(data *schema.ResourceData, meta interface{
 
 	// start the automation agent
 	cmd = fmt.Sprintf("nohup ./mongodb-mms-automation-agent --config=%s >> %s/automation-agent-fatal.log 2>&1 &", automationConfig.ConfigFilename(), automationConfig.LogPath)
-	ssh.PanicOnError(client.RunCommand(cmd))
+	ssh.PanicOnError(sshClient.RunCommand(cmd))
 
 	// check if it's running
 	cmd = fmt.Sprintf("(pgrep mongodb-mms-automation-agent && echo \"Started\" ) || echo \"Stopped\"")
-	res := client.RunCommand(conn.SudoPrefix(cmd))
+	res := sshClient.RunCommand(conn.SudoPrefix(cmd))
 	ssh.PanicOnError(res)
 	if strings.Contains(res.Stdout, "Stopped") {
 		return fmt.Errorf("Error starting automation agent")

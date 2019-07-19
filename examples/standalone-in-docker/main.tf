@@ -41,6 +41,13 @@ resource "random_string" "encryptionkey" {
   special = true
 }
 
+resource "random_string" "globalownerpassword" {
+  length      = 12
+  special     = true
+  min_special = 1
+}
+
+
 # Deploy a single instance of Ops Manager
 resource "mongodb_opsmanager" "opsman" {
   host {
@@ -58,6 +65,8 @@ resource "mongodb_opsmanager" "opsman" {
     port                = 8080
     central_url         = "http://${mongodb_process.mdb_standalone.host.0.hostname}:8080"
     register_first_user = true
+    first_user_password = random_string.globalownerpassword.result
+    ops_manager_port    = docker_container.mdb0-0.ports[1].external
 
     overrides = {
       "mms.ignoreInitialUiSetup"      = "true"
@@ -82,6 +91,10 @@ resource "mongodb_automation_agent" "automation_agent" {
   }
 
   automation {
-    mms_base_url = mongodb_opsmanager.opsman.opsmanager[0].central_url
+    mms_base_url      = mongodb_opsmanager.opsman.opsmanager[0].central_url
+    mms_group_id      = mongodb_opsmanager.opsman.opsmanager[0].mms_group_id
+    mms_agent_api_key = mongodb_opsmanager.opsman.opsmanager[0].mms_agent_api_key
   }
+
+
 }
