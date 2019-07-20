@@ -86,6 +86,7 @@ TFDIR=examples/standalone-in-docker
 terraform-ipa: terraform-clean clean install
 	@echo "Initializing terraform, then applying the plan..."
 	cd $(TFDIR); \
+	which terraform; \
 	terraform init; \
 	terraform plan; \
 	terraform apply -auto-approve
@@ -93,6 +94,7 @@ terraform-ipa: terraform-clean clean install
 terraform-clean: remove-qa-container
 	@echo "Destroying any existing resources and deleting TF state"
 	-cd $(TFDIR); \
+	terraform init; \
 	terraform destroy -auto-approve; \
 	rm -rf .terraform terraform.tfstate terraform.tfstate.backup *.log
 

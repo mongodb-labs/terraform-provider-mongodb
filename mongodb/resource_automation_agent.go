@@ -48,16 +48,15 @@ func resourceMdbAutomationAgentCreate(data *schema.ResourceData, meta interface{
 	}
 
 	// attempt to create directories if not already present
-	cmd := fmt.Sprintf("mkdir -p %s %s", automationConfig.WorkDir, automationConfig.LogPath)
-	ssh.PanicOnError(sshClient.RunCommand(conn.SudoPrefix(cmd)))
-	cmd = fmt.Sprintf("cd %s", automationConfig.WorkDir)
+	cmd := fmt.Sprintf("mkdir -p %s", automationConfig.WorkDir)
 	ssh.PanicOnError(sshClient.RunCommand(conn.SudoPrefix(cmd)))
 
 	// Set correct permissions for directories
-	cmd = fmt.Sprintf("chown `whoami` %s %s", automationConfig.WorkDir, automationConfig.LogPath)
+	cmd = fmt.Sprintf("chown $(whoami) %s", automationConfig.WorkDir)
 	ssh.PanicOnError(sshClient.RunCommand(conn.SudoPrefix(cmd)))
 
 	// download the automation agent binary on the remote host
+	// TODO(mihaibojin): Support more architectures than only 'linux_x86_64'
 	filename := fmt.Sprintf("mongodb-mms-automation-agent-%s.linux_x86_64.tar.gz", automationConfig.Version)
 	cmd = fmt.Sprintf("curl -O \"%s/download/agent/automation/%s\"", automationConfig.MMSBaseURL, filename)
 	ssh.PanicOnError(sshClient.RunCommand(conn.SudoPrefix(cmd)))
@@ -74,22 +73,26 @@ func resourceMdbAutomationAgentCreate(data *schema.ResourceData, meta interface{
 			props.SetComments(automationConfig.GetAutomationConfigTag("MMSGroupID"), []string{"", commentString, ""})
 			props.SetPropertyValue(automationConfig.GetAutomationConfigTag("MMSAgentAPIKey"), automationConfig.MMSAgentAPIKey)
 			props.SetPropertyValue(automationConfig.GetAutomationConfigTag("MMSBaseURL"), automationConfig.MMSBaseURL)
-			for prop, val := range automationConfig.Overrides {
-				props.SetPropertyValue(prop, val.(string))
-			}
+			props.SetPropertyValue("logFile", automationConfig.LogFilename())
 		})
 	util.PanicOnNonNilErr(err)
 
 	// start the automation agent
-	cmd = fmt.Sprintf("nohup ./mongodb-mms-automation-agent --config=%s >> %s/automation-agent-fatal.log 2>&1 &", automationConfig.ConfigFilename(), automationConfig.LogPath)
-	ssh.PanicOnError(sshClient.RunCommand(cmd))
+	cmd = fmt.Sprintf("nohup %[1]s/mongodb-mms-automation-agent --config=%[2]s >> %[1]s/automation-agent-fatal.log 2>&1 & sleep 1",
+		automationConfig.WorkDir, automationConfig.ConfigFilename())
+	ssh.PanicOnError(sshClient.RunCommand(conn.SudoPrefix(cmd)))
 
-	// check if it's running
-	cmd = fmt.Sprintf("(pgrep mongodb-mms-automation-agent && echo \"Started\" ) || echo \"Stopped\"")
+	// wait for the Automation Agent to start
+	if err := ssh.WaitForService(ssh.NewServiceStatusChecker(sshClient), "mongodb-mms-automation-agent"); err != nil {
+		return fmt.Errorf("failed waiting for mongodb-mms-automation-agent to start: %v", err)
+	}
+	log.Printf("[DEBUG] confirmed the AA service is running...")
+
+	cmd = fmt.Sprintf("(ps -ef | grep -q mongodb-mms-automation-agent && echo \"Started\" ) || echo \"Stopped\"")
 	res := sshClient.RunCommand(conn.SudoPrefix(cmd))
 	ssh.PanicOnError(res)
 	if strings.Contains(res.Stdout, "Stopped") {
-		return fmt.Errorf("Error starting automation agent")
+		return fmt.Errorf("error starting automation agent")
 	}
 	log.Printf("[DEBUG] started automation agent from configuration file %s", automationConfig.ConfigFilename())
 

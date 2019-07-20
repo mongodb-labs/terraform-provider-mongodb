@@ -16,4 +16,7 @@ const (
 
 	// LongCreationTimeout timeout to use for longer operations
 	LongCreationTimeout = 60 * time.Minute
+
+	// ServiceStartedTimeout timeout used while waiting for a service to be started
+	ServiceStartedTimeout = 1 * time.Minute
 )

@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
-	"net/url"
 	"path"
 	"path/filepath"
 	"strconv"
@@ -147,15 +146,16 @@ func resourceMdbOpsManagerCreate(data *schema.ResourceData, meta interface{}) er
 	log.Printf("[DEBUG] confirmed connection to the Ops Manager port: %d", omConfig.Port)
 
 	// create first user if option was passed
-	if omConfig.RegisterFirstUser {
-		// create the first user via the client with noauth
-		apiURL := fmt.Sprintf("http://%s:%d", conn.Hostname, omConfig.OpsManagerPort)
+	if omConfig.RegisterGlobalOwner {
+		// TODO(mihaibojin): temporary fix to address OM port != exposed port
+		apiURL := fmt.Sprintf("http://%s:%d", conn.Hostname, omConfig.ExternalPort)
 		resolver := httpclient.NewURLResolverWithPrefix(apiURL, opsmanager.PublicAPIPrefix)
+		omAPIClientNoAuth := opsmanager.NewDefaultClient(resolver)
 
 		// create the first user
-		omAPIClientNoAuth := opsmanager.NewDefaultClient(resolver)
-		user := opsmanager.User{Username: omConfig.Username, Password: omConfig.FirstUserPassword, FirstName: omConfig.Firstname, LastName: omConfig.Lastname}
-		apiFirstUserResp, err := omAPIClientNoAuth.CreateFirstUser(user, url.QueryEscape("0.0.0.1/0"))
+		firstName, lastName, emailAddress := util.TryExtractFirstLastNameAndEmail(omConfig.GlobalOwnerUsername)
+		user := opsmanager.User{Username: omConfig.GlobalOwnerUsername, Password: omConfig.GlobalOwnerPassword, FirstName: firstName, LastName: lastName, EmailAddress: emailAddress}
+		apiFirstUserResp, err := omAPIClientNoAuth.CreateFirstUser(user, "0.0.0.1/0")
 		if err != nil {
 			return fmt.Errorf("failed to create first user: %v", err)
 		}
@@ -183,7 +183,7 @@ func resourceMdbOpsManagerCreate(data *schema.ResourceData, meta interface{}) er
 			return fmt.Errorf("failed to reconstruct OM schema: %v", err)
 		}
 
-		s := []interface{}{}
+		var s []interface{}
 		s = append(s, deconstructed)
 
 		if err = data.Set("opsmanager", s); err != nil {
