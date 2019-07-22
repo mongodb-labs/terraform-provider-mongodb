@@ -47,12 +47,8 @@ func resourceMdbAutomationAgentCreate(data *schema.ResourceData, meta interface{
 		return fmt.Errorf("could not create a SSH client: %v", err)
 	}
 
-	// attempt to create directories if not already present
-	cmd := fmt.Sprintf("mkdir -p %s", automationConfig.WorkDir)
-	ssh.PanicOnError(sshClient.RunCommand(conn.SudoPrefix(cmd)))
-
-	// Set correct permissions for directories
-	cmd = fmt.Sprintf("chown $(whoami) %s", automationConfig.WorkDir)
+	// create the working directory and set the appropriate permissions
+	cmd := fmt.Sprintf("mkdir -p %[1]s && chown $(whoami) %[1]s && chmod 0775 %[1]s", automationConfig.WorkDir)
 	ssh.PanicOnError(sshClient.RunCommand(conn.SudoPrefix(cmd)))
 
 	// download the automation agent binary on the remote host

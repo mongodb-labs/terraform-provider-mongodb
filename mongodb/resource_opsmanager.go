@@ -59,8 +59,8 @@ func resourceMdbOpsManagerCreate(data *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("could not create a SSH client: %v", err)
 	}
 
-	// attempt to create the work directory
-	cmd := fmt.Sprintf("mkdir -p %s", omConfig.WorkDir)
+	// create the working directory and set the appropriate permissions
+	cmd := fmt.Sprintf("mkdir -p %[1]s && chown $(whoami) %[1]s && chmod 0775 %[1]s", omConfig.WorkDir)
 	ssh.PanicOnError(client.RunCommand(conn.SudoPrefix(cmd)))
 
 	// download Ops Manager
@@ -122,7 +122,7 @@ func resourceMdbOpsManagerCreate(data *schema.ResourceData, meta interface{}) er
 	remoteEncKeyPath := "/etc/mongodb-mms/gen.key"
 	remoteTempFile := "~/gen.key"
 	// create the encryption key's directory
-	cmd = fmt.Sprintf("mkdir -p %s", filepath.Dir(remoteEncKeyPath))
+	cmd = fmt.Sprintf("mkdir -p %[1]s", filepath.Dir(remoteEncKeyPath))
 	ssh.PanicOnError(client.RunCommand(conn.SudoPrefix(cmd)))
 	// store the encryption key to a temp file, always ensuring no more than 24 bytes are selected
 	escaped := strings.Replace(omConfig.EncryptionKey[0:24], "'", "\\'", -1)
@@ -132,7 +132,7 @@ func resourceMdbOpsManagerCreate(data *schema.ResourceData, meta interface{}) er
 	// upload the file
 	ssh.PanicOnError(client.UploadFile(remoteTempFile, encKeyFile))
 	// move the file to its final location and set the correct perms
-	cmd = fmt.Sprintf("bash -c 'mv %[1]s %[2]s; chown mongodb-mms:mongodb-mms %[2]s; chmod 0600 %[2]s'", remoteTempFile, remoteEncKeyPath)
+	cmd = fmt.Sprintf("bash -c 'mv %[1]s %[2]s; chown mongodb-mms:mongodb-mms %[2]s; chmod -R 0550 %[2]s'", remoteTempFile, path.Base(remoteEncKeyPath))
 	ssh.PanicOnError(client.RunCommand(conn.SudoPrefix(cmd)))
 
 	// start the Ops Manager service

@@ -3,6 +3,7 @@ provider "docker" {
   host = "unix:///var/run/docker.sock"
 }
 
+
 # Create a container
 resource "docker_container" "mdb0-0" {
   name = "qa_ubuntu1804"
@@ -45,7 +46,6 @@ resource "random_string" "encryptionkey" {
   length = 24
   special = true
 }
-
 resource "random_string" "globalownerpassword" {
   length = 12
   min_lower = 1
