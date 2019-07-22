@@ -1,6 +1,6 @@
 # Configure providers
 provider "aws" {
-  region                  = "eu-west-1"
+  region = "eu-west-1"
   shared_credentials_file = "~/.aws/credentials"
 }
 
@@ -10,12 +10,12 @@ provider "aws" {
 
 ## Variables
 variable "key_name" {
-  type    = "string"
+  type = "string"
   default = "terraform_ssh_key"
 }
 
 variable "aws_ssh_username" {
-  type    = "string"
+  type = "string"
   default = "ec2-user"
 }
 
@@ -34,13 +34,13 @@ data "aws_ami" "base_ami" {
   filter {
     name = "name"
     values = [
-    "RHEL-7.6_HVM_GA*"]
+      "RHEL-7.6_HVM_GA*"]
   }
 
   filter {
     name = "virtualization-type"
     values = [
-    "hvm"]
+      "hvm"]
   }
 
   owners = [
@@ -52,31 +52,33 @@ data "aws_ami" "base_ami" {
 ## Resources
 resource "tls_private_key" "ssh_credentials" {
   algorithm = "RSA"
-  rsa_bits  = 4096
+  rsa_bits = 4096
 }
 
 resource "aws_key_pair" "public_ssh_key" {
-  key_name   = var.key_name
+  key_name = var.key_name
   public_key = tls_private_key.ssh_credentials.public_key_openssh
 }
 
 resource "aws_instance" "mdb0-0" {
-  ami           = data.aws_ami.base_ami.id
-  instance_type = "t2.micro"
-  key_name      = aws_key_pair.public_ssh_key.key_name
+  ami = data.aws_ami.base_ami.id
+  instance_type = "t2.large"
+  key_name = aws_key_pair.public_ssh_key.key_name
   vpc_security_group_ids = [
-  var.security_group_id]
-  subnet_id                   = var.subnet_id
+    var.security_group_id]
+  subnet_id = var.subnet_id
   associate_public_ip_address = true
 
   tags = {
-    Name = "RedHat 7.6 + MongoDB support"
+    Name = "Ops Manager via Terraform Provider"
+    dnr = true
   }
 
   provisioner "remote-exec" {
     connection {
-      type        = "ssh"
-      user        = var.aws_ssh_username
+      type = "ssh"
+      host = self.public_ip
+      user = var.aws_ssh_username
       private_key = tls_private_key.ssh_credentials.private_key_pem
     }
 
@@ -88,35 +90,96 @@ resource "aws_instance" "mdb0-0" {
 }
 
 ## Outputs
-output "mdb0-0-connection" {
-  value       = "${var.aws_ssh_username}@${aws_instance.mdb0-0.public_ip}"
-  description = "The FQDN of the provisioned instance."
-}
-
 output "ssh_private_key" {
   # Export with $(terraform output ssh_private_key)
-  value       = tls_private_key.ssh_credentials.private_key_pem
+  value = tls_private_key.ssh_credentials.private_key_pem
   description = "The ssh private key used to connect to the instance."
-  sensitive   = true
+  sensitive = true
 }
-
 
 #
 # MongoDB standalone
 #
-
-resource "mongodb_process" "standalone" {
+resource "mongodb_process" "mdb_standalone" {
   host {
-    user     = "root"
-    hostname = "127.0.0.1"
-    port     = 22
+    user = var.aws_ssh_username
+    hostname = aws_instance.mdb0-0.public_ip
+    port = 22
+    private_key = tls_private_key.ssh_credentials.private_key_pem
   }
 
   mongod {
-    binary  = "http://downloads.mongodb.org/linux/mongodb-linux-x86_64-ubuntu1804-4.0.10.tgz"
-    bindip  = "0.0.0.0"
+    binary = "https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-rhel70-4.0.10.tgz"
+    bindip = "127.0.0.1"
+    port = 27017
     workdir = "/opt/mongodb"
   }
 }
 
-# TODO(mihaibojin): Complete this example (based on the Docker equivalent)
+
+# Generate an encryption key for Ops Manager
+resource "random_string" "encryptionkey" {
+  length = 24
+  special = true
+}
+
+resource "random_string" "globalownerpassword" {
+  length = 12
+  min_numeric = 4
+  min_special = 1
+}
+
+# Deploy a single instance of Ops Manager
+locals {
+  ops_manager_port = 9080
+}
+resource "mongodb_opsmanager" "opsman" {
+  host {
+    user = var.aws_ssh_username
+    hostname = aws_instance.mdb0-0.public_ip
+    port = 22
+    private_key = tls_private_key.ssh_credentials.private_key_pem
+  }
+
+  opsmanager {
+    binary = "https://downloads.mongodb.com/on-prem-mms/rpm/mongodb-mms-4.0.13.50537.20190703T1029Z-1.x86_64.rpm"
+    workdir = "/opt/mongodb"
+    mongo_uri = "mongodb://${mongodb_process.mdb_standalone.host.0.hostname}:${mongodb_process.mdb_standalone.mongod.0.port}/"
+    encryption_key = random_string.encryptionkey.result
+    port = local.ops_manager_port
+    external_port = local.ops_manager_port
+    central_url = "http://${mongodb_process.mdb_standalone.host.0.hostname}:${local.ops_manager_port}"
+    register_global_owner = true
+    global_owner_username = "admin"
+    global_owner_password = random_string.globalownerpassword.result
+
+    overrides = {
+      "mms.ignoreInitialUiSetup" = "true"
+      "mms.fromEmailAddr" = "noreply@example.com"
+      "mms.replyToEmailAddr" = "noreply@example.com"
+      "mms.adminEmailAddr" = "noreply@example.com"
+      "mms.mail.transport" = "smtp"
+      "mms.mail.hostname" = "localhost"
+      "mms.mail.port" = "25"
+      "mms.mail.ssl" = "false"
+      "automation.versions.directory" = "/data/automation/mongodb-releases"
+      "automation.versions.source" = "mongodb"
+    }
+  }
+}
+
+# Deploy an Automation Agent
+resource "mongodb_automation_agent" "automation_agent" {
+  host {
+    user = var.aws_ssh_username
+    hostname = aws_instance.mdb0-0.public_ip
+    port = 22
+    private_key = tls_private_key.ssh_credentials.private_key_pem
+  }
+
+  automation {
+    mms_base_url = mongodb_opsmanager.opsman.opsmanager[0].central_url
+    mms_group_id = mongodb_opsmanager.opsman.opsmanager[0].mms_group_id
+    mms_agent_api_key = mongodb_opsmanager.opsman.opsmanager[0].mms_agent_api_key
+  }
+}
