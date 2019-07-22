@@ -41,6 +41,17 @@ resource "mongodb_process" "mdb_standalone" {
 locals {
   ops_manager_port = 8080
 }
+resource "random_string" "encryptionkey" {
+  length = 24
+  special = true
+}
+
+resource "random_string" "globalownerpassword" {
+  length = 12
+  min_lower = 1
+  min_numeric = 1
+  min_special = 1
+}
 resource "mongodb_opsmanager" "opsman" {
   host {
     user = "root"
@@ -77,19 +88,7 @@ resource "mongodb_opsmanager" "opsman" {
 }
 
 
-# Generate an encryption key for Ops Manager
-resource "random_string" "encryptionkey" {
-  length = 24
-  special = true
-}
-
-resource "random_string" "globalownerpassword" {
-  length = 12
-  min_numeric = 4
-  min_special = 1
-}
-
-
+# Deploy an Automation Agent on the Ops Manager host
 resource "mongodb_automation_agent" "automation_agent" {
   host {
     user = "root"

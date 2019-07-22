@@ -42,6 +42,11 @@ func IsValidEmailAddress(email string) bool {
 }
 
 // TryExtractFirstLastNameAndEmail attempts to extract first, last name and email address
+// - if the passed contents are not an email, both the first/last names will be set to the specified value
+//   and the email will be left blank
+// if the email address does not contain a separator character, its user part will be set to both first/last name values
+// if the email address has a dot or underscore separator character, the first name will be set to
+//   the string up to the separator and the last name will be set to the character string starting after the separator
 func TryExtractFirstLastNameAndEmail(contents string) (firstName string, lastName string, emailAddress string) {
 	if !IsValidEmailAddress(contents) {
 		// if the data string is not an email, set first/last name to the passed contents
@@ -59,15 +64,14 @@ func TryExtractFirstLastNameAndEmail(contents string) (firstName string, lastNam
 		tentative = strings.SplitN(part, "_", 2)
 	}
 
-	if len(tentative) < 2 {
-		// could not find 2 parts, set both as the same
-		firstName = tentative[0]
-		lastName = tentative[0]
-		emailAddress = contents
-		return
+	// set the first name
+	firstName = tentative[0]
+	lastName = tentative[0]
+
+	if len(tentative) > 1 {
+		// if a last name was identified, set it
+		lastName = tentative[1]
 	}
 
-	firstName = tentative[0]
-	lastName = tentative[1]
 	return
 }
