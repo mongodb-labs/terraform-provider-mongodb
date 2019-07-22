@@ -60,7 +60,7 @@ func resourceMdbOpsManagerCreate(data *schema.ResourceData, meta interface{}) er
 	}
 
 	// create the working directory and set the appropriate permissions
-	cmd := fmt.Sprintf("bash -c 'mkdir -p %[1]s && chown $(whoami) %[1]s && chmod 0775 %[1]s'", omConfig.WorkDir)
+	cmd := fmt.Sprintf("bash -c \"mkdir -p %[1]s && chown $(whoami) %[1]s && chmod 0775 %[1]s\"", omConfig.WorkDir)
 	ssh.PanicOnError(client.RunCommand(conn.SudoPrefix(cmd)))
 
 	// download Ops Manager
@@ -118,6 +118,9 @@ func resourceMdbOpsManagerCreate(data *schema.ResourceData, meta interface{}) er
 		})
 	util.PanicOnNonNilErr(err)
 
+	// create the AVD, if specified as an override
+	ensureAutomationVersionsDirectory(omConfig, client, conn)
+
 	// upload the encryption key
 	remoteEncKeyPath := "/etc/mongodb-mms/gen.key"
 	remoteTempFile := "~/gen.key"
@@ -132,7 +135,11 @@ func resourceMdbOpsManagerCreate(data *schema.ResourceData, meta interface{}) er
 	// upload the file
 	ssh.PanicOnError(client.UploadFile(remoteTempFile, encKeyFile))
 	// move the file to its final location and set the correct perms
-	cmd = fmt.Sprintf("bash -c 'mv %[1]s %[2]s; chown mongodb-mms:mongodb-mms %[2]s; chmod -R 0550 %[2]s'", remoteTempFile, path.Base(remoteEncKeyPath))
+	cmd = fmt.Sprintf("bash -c \"mv %[1]s %[2]s; chown mongodb-mms:mongodb-mms %[2]s; chmod -R 0550 %[2]s\"", remoteTempFile, path.Base(remoteEncKeyPath))
+	ssh.PanicOnError(client.RunCommand(conn.SudoPrefix(cmd)))
+
+	// set the correct owner on all Ops Manager files
+	cmd = fmt.Sprintf("chown -R mongodb-mms:mongodb-mms %[1]s", omConfig.WorkDir)
 	ssh.PanicOnError(client.RunCommand(conn.SudoPrefix(cmd)))
 
 	// start the Ops Manager service
@@ -250,9 +257,26 @@ func updatePropertiesFile(client *ssh.Client, conn types.RemoteConnection, remot
 	configData, err := config.Write()
 	util.PanicOnNonNilErr(err)
 
+	// temporarily set file permissions to 0777
+	cmd := fmt.Sprintf("chmod 0777 %[1]s", remoteFile)
+	ssh.PanicOnError(client.RunCommand(conn.SudoPrefix(cmd)))
+
 	// upload the config file to the remote host
 	ssh.PanicOnError(client.UploadData(remoteFile, bufio.NewReader(strings.NewReader(configData))))
 	log.Printf("[DEBUG] uploaded the config file to the remote host, at: %s", remoteFile)
 
+	// revert permissions to 0755
+	cmd = fmt.Sprintf("chmod 0755 %[1]s", remoteFile)
+	ssh.PanicOnError(client.RunCommand(conn.SudoPrefix(cmd)))
+
 	return nil
+}
+
+// ensureAutomationVersionsDirectory creates the automation versions directory if specified as an override
+func ensureAutomationVersionsDirectory(cfg types.OpsManagerConfig, client *ssh.Client, conn types.RemoteConnection) {
+	if avd, ok := cfg.Overrides["automation.versions.directory"]; ok {
+		// create the automation directory
+		cmd := fmt.Sprintf("bash -c \"mkdir -p %[1]s && chown mongodb-mms:mongodb-mms %[1]s && chmod 0775 %[1]s\"", avd)
+		ssh.PanicOnError(client.RunCommand(conn.SudoPrefix(cmd)))
+	}
 }

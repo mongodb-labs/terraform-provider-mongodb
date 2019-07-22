@@ -69,7 +69,7 @@ func resourceMdbProcessCreate(data *schema.ResourceData, meta interface{}) error
 	// create the working directory (and other dirs) and set the appropriate permissions
 	dbPath := filepath.Join(dbConfig.WorkDir, dbConfig.DbPath)
 	logPath := filepath.Join(dbConfig.WorkDir, dbConfig.DbPath, dbConfig.LogPath)
-	cmd := fmt.Sprintf("bash -c 'mkdir -p %[1]s %[2]s %[3]s && chown $(whoami) %[1]s %[2]s %[3]s && chmod 0775 %[1]s %[2]s %[3]s'", dbConfig.WorkDir, dbPath, path.Base(logPath))
+	cmd := fmt.Sprintf("bash -c \"mkdir -p %[1]s %[2]s %[3]s && chown $(whoami) %[1]s %[2]s %[3]s && chmod 0775 %[1]s %[2]s %[3]s\"", dbConfig.WorkDir, dbPath, filepath.Dir(logPath))
 	ssh.PanicOnError(client.RunCommand(conn.SudoPrefix(cmd)))
 
 	// create a MongoDB configuration file

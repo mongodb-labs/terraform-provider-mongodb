@@ -96,6 +96,9 @@ resource "aws_instance" "mdb0-0" {
 
 
 # Deploy a MongoDB standalone
+locals {
+  appdb_bind_ip = "127.0.0.1"
+}
 resource "mongodb_process" "mdb_standalone" {
   host {
     user = var.aws_ssh_username
@@ -106,7 +109,7 @@ resource "mongodb_process" "mdb_standalone" {
 
   mongod {
     binary = "https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-rhel70-4.0.10.tgz"
-    bindip = "127.0.0.1"
+    bindip = local.appdb_bind_ip
     port = 27017
     workdir = "/opt/mongodb"
   }
@@ -139,7 +142,7 @@ resource "mongodb_opsmanager" "opsman" {
   opsmanager {
     binary = "https://downloads.mongodb.com/on-prem-mms/rpm/mongodb-mms-4.0.13.50537.20190703T1029Z-1.x86_64.rpm"
     workdir = "/opt/mongodb"
-    mongo_uri = "mongodb://${mongodb_process.mdb_standalone.host.0.hostname}:${mongodb_process.mdb_standalone.mongod.0.port}/"
+    mongo_uri = "mongodb://${local.appdb_bind_ip}:${mongodb_process.mdb_standalone.mongod.0.port}/"
     encryption_key = random_string.encryptionkey.result
     port = local.ops_manager_port
     external_port = local.ops_manager_port

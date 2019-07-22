@@ -48,7 +48,7 @@ func resourceMdbAutomationAgentCreate(data *schema.ResourceData, meta interface{
 	}
 
 	// create the working directory and set the appropriate permissions
-	cmd := fmt.Sprintf("bash -c 'mkdir -p %[1]s && chown $(whoami) %[1]s && chmod 0775 %[1]s'", automationConfig.WorkDir)
+	cmd := fmt.Sprintf("bash -c \"mkdir -p %[1]s && chown $(whoami) %[1]s && chmod 0775 %[1]s\"", automationConfig.WorkDir)
 	ssh.PanicOnError(sshClient.RunCommand(conn.SudoPrefix(cmd)))
 
 	// download the automation agent binary on the remote host
@@ -72,6 +72,10 @@ func resourceMdbAutomationAgentCreate(data *schema.ResourceData, meta interface{
 			props.SetPropertyValue("logFile", automationConfig.LogFilename())
 		})
 	util.PanicOnNonNilErr(err)
+
+	// set the correct owner on all Ops Manager files
+	cmd = fmt.Sprintf("chown -R mongodb-mms:mongodb-mms %[1]s", automationConfig.WorkDir)
+	ssh.PanicOnError(sshClient.RunCommand(conn.SudoPrefix(cmd)))
 
 	// start the automation agent
 	cmd = fmt.Sprintf("nohup %[1]s/mongodb-mms-automation-agent --config=%[2]s >> %[1]s/automation-agent-fatal.log 2>&1 & sleep 1",
