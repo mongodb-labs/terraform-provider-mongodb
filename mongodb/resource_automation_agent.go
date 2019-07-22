@@ -76,7 +76,7 @@ func resourceMdbAutomationAgentCreate(data *schema.ResourceData, meta interface{
 	ssh.PanicOnError(sshClient.RunCommand(conn.SudoPrefix(cmd)))
 
 	// start the automation agent
-	cmd = fmt.Sprintf("nohup %[1]s/mongodb-mms-automation-agent --config=%[2]s >> %[1]s/automation-agent-fatal.log 2>&1 & sleep 1",
+	cmd = fmt.Sprintf("bash -c 'nohup %[1]s/mongodb-mms-automation-agent --config=%[2]s >> %[1]s/automation-agent-fatal.log 2>&1 &' && sleep 1",
 		automationConfig.WorkDir, automationConfig.ConfigFilename())
 	ssh.PanicOnError(sshClient.RunCommand(conn.SudoPrefix(cmd)))
 
