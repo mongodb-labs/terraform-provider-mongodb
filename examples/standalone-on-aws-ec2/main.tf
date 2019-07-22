@@ -4,11 +4,8 @@ provider "aws" {
   shared_credentials_file = "~/.aws/credentials"
 }
 
-#
-# AWS AMI with MongoDB support
-#
 
-## Variables
+# Declare variables and outputs
 variable "key_name" {
   type = "string"
   default = "terraform_ssh_key"
@@ -26,8 +23,16 @@ variable "security_group_id" {
 variable "subnet_id" {
   type = "string"
 }
+output "ssh_private_key" {
+  # Export with $(terraform output ssh_private_key)
+  value = tls_private_key.ssh_credentials.private_key_pem
+  description = "The ssh private key used to connect to the instance."
+  sensitive = true
+}
 
-## Datasources
+# Deploy an AWS EC2 AMI
+
+## Data sources
 data "aws_ami" "base_ami" {
   most_recent = true
 
@@ -89,17 +94,8 @@ resource "aws_instance" "mdb0-0" {
   }
 }
 
-## Outputs
-output "ssh_private_key" {
-  # Export with $(terraform output ssh_private_key)
-  value = tls_private_key.ssh_credentials.private_key_pem
-  description = "The ssh private key used to connect to the instance."
-  sensitive = true
-}
 
-#
-# MongoDB standalone
-#
+# Deploy a MongoDB standalone
 resource "mongodb_process" "mdb_standalone" {
   host {
     user = var.aws_ssh_username
@@ -117,7 +113,7 @@ resource "mongodb_process" "mdb_standalone" {
 }
 
 
-# Generate an encryption key for Ops Manager
+# Deploy a single instance of Ops Manager
 resource "random_string" "encryptionkey" {
   length = 24
   special = true
@@ -125,11 +121,10 @@ resource "random_string" "encryptionkey" {
 
 resource "random_string" "globalownerpassword" {
   length = 12
-  min_numeric = 4
+  min_lower = 1
+  min_numeric = 1
   min_special = 1
 }
-
-# Deploy a single instance of Ops Manager
 locals {
   ops_manager_port = 9080
 }
@@ -168,7 +163,8 @@ resource "mongodb_opsmanager" "opsman" {
   }
 }
 
-# Deploy an Automation Agent
+
+# Deploy an Automation Agent on the Ops Manager host
 resource "mongodb_automation_agent" "automation_agent" {
   host {
     user = var.aws_ssh_username
