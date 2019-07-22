@@ -86,7 +86,6 @@ TFDIR=examples/standalone-in-docker
 terraform-ipa: terraform-clean clean install
 	@echo "Initializing terraform, then applying the plan..."
 	cd $(TFDIR); \
-	which terraform; \
 	terraform init; \
 	terraform plan; \
 	terraform apply -auto-approve

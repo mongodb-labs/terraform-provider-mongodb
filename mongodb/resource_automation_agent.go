@@ -2,13 +2,11 @@ package mongodb
 
 import (
 	"fmt"
-	"log"
-	"strings"
-
 	"github.com/hashicorp/terraform/helper/schema"
 	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/ssh"
 	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/types"
 	"github.com/mongodb-labs/terraform-provider-mongodb/mongodb/util"
+	"log"
 )
 
 func resourceAutomationAgent() *schema.Resource {
@@ -86,15 +84,7 @@ func resourceMdbAutomationAgentCreate(data *schema.ResourceData, meta interface{
 	if err := ssh.WaitForService(ssh.NewServiceStatusChecker(sshClient), "mongodb-mms-automation-agent"); err != nil {
 		return fmt.Errorf("failed waiting for mongodb-mms-automation-agent to start: %v", err)
 	}
-	log.Printf("[DEBUG] confirmed the AA service is running...")
-
-	cmd = fmt.Sprintf("(ps -ef | grep -q mongodb-mms-automation-agent && echo \"Started\" ) || echo \"Stopped\"")
-	res := sshClient.RunCommand(conn.SudoPrefix(cmd))
-	ssh.PanicOnError(res)
-	if strings.Contains(res.Stdout, "Stopped") {
-		return fmt.Errorf("error starting automation agent")
-	}
-	log.Printf("[DEBUG] started automation agent from configuration file %s", automationConfig.ConfigFilename())
+	log.Printf("[DEBUG] confirmed the AA service is running using this config: %s", automationConfig.ConfigFilename())
 
 	return resourceMdbAutomationAgentRead(data, meta)
 }

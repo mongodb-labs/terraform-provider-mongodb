@@ -1,6 +1,3 @@
-TEST_NAMESPACE=mongodb-terraform
-TEST_CONTAINER=qa_ubuntu1804
-
 default: apply
 
 clean:

@@ -57,7 +57,7 @@ func WaitForOpenPort(portChecker func(port int) Result, port int) error {
 // NewServiceStatusChecker constructs a function based on the specified ssh.Client, which checks if the specified service is running
 func NewServiceStatusChecker(client *Client) func(serviceName string) Result {
 	return func(serviceName string) Result {
-		return client.RunCommand(fmt.Sprintf("(ps -ef | grep -q %s && echo \"started\" ) || echo \"stopped\"", serviceName))
+		return client.RunCommand(fmt.Sprintf("(ps -ef | grep -v grep | grep -q %s && echo \"started\" ) || echo \"stopped\"", serviceName))
 	}
 }
 
