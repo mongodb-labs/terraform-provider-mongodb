@@ -48,7 +48,7 @@ func resourceMdbAutomationAgentCreate(data *schema.ResourceData, meta interface{
 	}
 
 	// create the working directory and set the appropriate permissions
-	cmd := fmt.Sprintf("mkdir -p %[1]s && chown $(whoami) %[1]s && chmod 0775 %[1]s", automationConfig.WorkDir)
+	cmd := fmt.Sprintf("bash -c 'mkdir -p %[1]s && chown $(whoami) %[1]s && chmod 0775 %[1]s'", automationConfig.WorkDir)
 	ssh.PanicOnError(sshClient.RunCommand(conn.SudoPrefix(cmd)))
 
 	// download the automation agent binary on the remote host

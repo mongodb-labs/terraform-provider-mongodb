@@ -60,7 +60,7 @@ func resourceMdbOpsManagerCreate(data *schema.ResourceData, meta interface{}) er
 	}
 
 	// create the working directory and set the appropriate permissions
-	cmd := fmt.Sprintf("mkdir -p %[1]s && chown $(whoami) %[1]s && chmod 0775 %[1]s", omConfig.WorkDir)
+	cmd := fmt.Sprintf("bash -c 'mkdir -p %[1]s && chown $(whoami) %[1]s && chmod 0775 %[1]s'", omConfig.WorkDir)
 	ssh.PanicOnError(client.RunCommand(conn.SudoPrefix(cmd)))
 
 	// download Ops Manager
