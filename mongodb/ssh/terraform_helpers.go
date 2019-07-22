@@ -11,7 +11,7 @@ import (
 // NewOpenPortCheckerFunc constructs a function based on the specified ssh.Client, which checks if the specified port is open
 func NewOpenPortCheckerFunc(client *Client) func(port int) Result {
 	return func(port int) Result {
-		return client.RunCommand(fmt.Sprintf("(ss -tln | grep -q %d) && echo open || echo closed", port))
+		return client.RunCommand(fmt.Sprintf("(netstat -nl | grep -q %d) && echo open || echo closed", port))
 	}
 }
 
