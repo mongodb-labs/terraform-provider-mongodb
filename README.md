@@ -28,9 +28,9 @@ The following actions are examples which, using a traditional (provisioner-based
 - [x] Terraform Resource: download and install an unmanaged MongoD standalone
 - [x] Terraform Resource: download and Install Ops Manager
 - [x] Terraform: use version 0.12.x syntax
-- [ ] Ops Manager: register the first user (global owner)
-- [ ] Ops Manager: Create an agent key via the API
-- [ ] Terraform Resource: Install and configure the Automation Agent
+- [x] Ops Manager: register the first user (global owner)
+- [x] Ops Manager: Create an agent key via the API
+- [x] Terraform Resource: Install and configure the Automation Agent
 - [ ] Terraform Resource: Enable Monitoring
 - [ ] Terraform Resource: Deploy a new MongoD standalone (managed by Ops Manager)
 - [ ] Terraform HCL: revisit the resource schema
