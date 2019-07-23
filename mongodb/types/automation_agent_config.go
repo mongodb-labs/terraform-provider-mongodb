@@ -9,13 +9,11 @@ import (
 
 // AutomationAgentConfig holder for Automation Agent Config
 type AutomationAgentConfig struct {
-	MMSBaseURL     string                 `json:"mms_base_url,omitempty" automation:"mmsBaseUrl"`
-	WorkDir        string                 `json:"workdir,omitempty"`
-	Version        string                 `json:"version,omitempty"`
-	LogPath        string                 `json:"logpath,omitempty"`
-	MMSGroupID     string                 `json:"mms_group_id,omitempty" automation:"mmsGroupId"`
-	MMSAgentAPIKey string                 `json:"mms_agent_api_key,omitempty" automation:"mmsApiKey"`
-	Overrides      map[string]interface{} `json:"overrides,omitempty"`
+	MMSBaseURL     string `json:"mms_base_url,omitempty" automation:"mmsBaseUrl"`
+	WorkDir        string `json:"workdir,omitempty"`
+	Version        string `json:"version,omitempty"`
+	MMSGroupID     string `json:"mms_group_id,omitempty" automation:"mmsGroupId"`
+	MMSAgentAPIKey string `json:"mms_agent_api_key,omitempty" automation:"mmsApiKey"`
 }
 
 // ReadAutomationAgentConfig parses a singleton list of AutomationAgentConfigSchema resources as a AutomationAgentConfig type
@@ -37,12 +35,6 @@ func ReadAutomationAgentConfig(list []interface{}) AutomationAgentConfig {
 	}
 	if v, ok := ReadString(data, "workdir"); ok {
 		cfg.WorkDir = v
-	}
-	if v, ok := ReadString(data, "logpath"); ok {
-		cfg.LogPath = v
-	}
-	if v, ok := ReadStringMap(data, "overrides"); ok {
-		cfg.Overrides = v
 	}
 	return *cfg
 }
@@ -72,21 +64,17 @@ var AutomationAgentConfigSchema = &schema.Resource{
 			Optional: true,
 			Default:  "/var/lib/mongodb-mms-automation",
 		},
-		"logpath": {
-			Type:     schema.TypeString,
-			Optional: true,
-			Default:  "/var/log/mongodb-mms-automation",
-		},
-		"overrides": {
-			Type:     schema.TypeMap,
-			Optional: true,
-		},
 	},
 }
 
 // ConfigFilename returns the path to the process's config filename
 func (cfg AutomationAgentConfig) ConfigFilename() string {
 	return path.Join(cfg.WorkDir, "local.config")
+}
+
+// LogFilename returns the path to the process's log filename
+func (cfg AutomationAgentConfig) LogFilename() string {
+	return path.Join(cfg.WorkDir, "automation-agent.log")
 }
 
 // GetAutomationConfigTag given a valid AutomationConfig struct field name, returns the specified automation tag

@@ -93,6 +93,7 @@ terraform-ipa: terraform-clean clean install
 terraform-clean: remove-qa-container
 	@echo "Destroying any existing resources and deleting TF state"
 	-cd $(TFDIR); \
+	terraform init; \
 	terraform destroy -auto-approve; \
 	rm -rf .terraform terraform.tfstate terraform.tfstate.backup *.log
 

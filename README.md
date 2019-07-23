@@ -28,9 +28,9 @@ The following actions are examples which, using a traditional (provisioner-based
 - [x] Terraform Resource: download and install an unmanaged MongoD standalone
 - [x] Terraform Resource: download and Install Ops Manager
 - [x] Terraform: use version 0.12.x syntax
-- [ ] Ops Manager: register the first user (global owner)
-- [ ] Ops Manager: Create an agent key via the API
-- [ ] Terraform Resource: Install and configure the Automation Agent
+- [x] Ops Manager: register the first user (global owner)
+- [x] Ops Manager: Create an agent key via the API
+- [x] Terraform Resource: Install and configure the Automation Agent
 - [ ] Terraform Resource: Enable Monitoring
 - [ ] Terraform Resource: Deploy a new MongoD standalone (managed by Ops Manager)
 - [ ] Terraform HCL: revisit the resource schema
@@ -62,6 +62,9 @@ The following actions are examples which, using a traditional (provisioner-based
 - [ ] Terraform Resource: move a managed resource from Ops Manager to Cloud Manager (fully online, including backups)
 - [ ] Code quality: integrate with a code coverage service
 - [ ] Terraform: write a test which checks that using a bastion host works as expected
+- [ ] Terraform: manage MMS, AppDB, and AA as system services (when hosts restart, so do these)
+- [ ] Terraform Resource: manage MMS, AppDB, and AA as system services (when hosts restart, so do these, e.g.: SystemD; user permissions)
+- [ ] Terraform Data source: Automation, Monitoring, and Backup agent versions (to allow the provider to upgrade agents)
 
 NOTE: the list above has not been prioritized. Please open a [New Issue](https://github.com/mongodb-labs/terraform-provider-mongodb/issues/new)
 if you'd like to discuss them or submit new ideas.

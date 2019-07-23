@@ -10,21 +10,19 @@ import (
 
 // OpsManagerConfig holder for Ops Manager config
 type OpsManagerConfig struct {
-	Binary            string                 `json:"binary,omitempty"`
-	WorkDir           string                 `json:"workdir,omitempty"`
-	MongoURI          string                 `json:"mongo_uri,omitempty" opsmanager:"mongo.mongoUri"`
-	EncryptionKey     string                 `json:"encryption_key,omitempty"` // /etc/mongodb-mms/gen.key
-	Port              int                    `json:"port,string,omitempty" opsmanager:"BASE_PORT"`
-	CentralURL        string                 `json:"central_url,omitempty" opsmanager:"mms.centralUrl"`
-	Overrides         map[string]interface{} `json:"overrides,omitempty"`
-	RegisterFirstUser bool                   `json:"register_first_user,omitempty"`
-	FirstUserPassword string                 `json:"first_user_password,omitempty"`
-	OpsManagerPort    int                    `json:"ops_manager_port,omitempty"`
-	MMSGroupID        string                 `json:"mms_group_id,omitempty" automation:"mmsGroupId"`
-	MMSAgentAPIKey    string                 `json:"mms_agent_api_key,omitempty" automation:"mmsApiKey"`
-	Username          string                 `json:"om_user_username,omitempty"`
-	Firstname         string                 `json:"om_user_firstname,omitempty"`
-	Lastname          string                 `json:"om_user_lastname,omitempty"`
+	Binary              string                 `json:"binary,omitempty"`
+	WorkDir             string                 `json:"workdir,omitempty"`
+	MongoURI            string                 `json:"mongo_uri,omitempty" opsmanager:"mongo.mongoUri"`
+	EncryptionKey       string                 `json:"encryption_key,omitempty"` // /etc/mongodb-mms/gen.key
+	Port                int                    `json:"port,omitempty" opsmanager:"BASE_PORT"`
+	CentralURL          string                 `json:"central_url,omitempty" opsmanager:"mms.centralUrl"`
+	Overrides           map[string]interface{} `json:"overrides,omitempty"`
+	RegisterGlobalOwner bool                   `json:"register_global_owner,omitempty"`
+	GlobalOwnerUsername string                 `json:"global_owner_username,omitempty"`
+	GlobalOwnerPassword string                 `json:"global_owner_password,omitempty"`
+	ExternalPort        int                    `json:"external_port,omitempty"`
+	MMSGroupID          string                 `json:"mms_group_id,omitempty" automation:"mmsGroupId"`
+	MMSAgentAPIKey      string                 `json:"mms_agent_api_key,omitempty" automation:"mmsApiKey"`
 }
 
 // ReadOpsManagerConfig parses a singleton list of OpsManagerConfigSchema resources as a OpsManagerConfig type
@@ -53,29 +51,23 @@ func ReadOpsManagerConfig(list []interface{}) OpsManagerConfig {
 	if v, ok := ReadStringMap(data, "overrides"); ok {
 		cfg.Overrides = v
 	}
-	if v, ok := ReadBool(data, "register_first_user"); ok {
-		cfg.RegisterFirstUser = v
+	if v, ok := ReadBool(data, "register_global_owner"); ok {
+		cfg.RegisterGlobalOwner = v
 	}
-	if v, ok := ReadString(data, "first_user_password"); ok {
-		cfg.FirstUserPassword = v
+	if v, ok := ReadString(data, "global_owner_username"); ok {
+		cfg.GlobalOwnerUsername = v
 	}
-	if v, ok := ReadInt(data, "ops_manager_port"); ok {
-		cfg.OpsManagerPort = v
+	if v, ok := ReadString(data, "global_owner_password"); ok {
+		cfg.GlobalOwnerPassword = v
+	}
+	if v, ok := ReadInt(data, "external_port"); ok {
+		cfg.ExternalPort = v
 	}
 	if v, ok := ReadString(data, "mms_group_id"); ok {
 		cfg.MMSGroupID = v
 	}
 	if v, ok := ReadString(data, "mms_agent_api_key"); ok {
 		cfg.MMSAgentAPIKey = v
-	}
-	if v, ok := ReadString(data, "om_user_username"); ok {
-		cfg.Username = v
-	}
-	if v, ok := ReadString(data, "om_user_firstname"); ok {
-		cfg.Firstname = v
-	}
-	if v, ok := ReadString(data, "om_user_lastname"); ok {
-		cfg.Lastname = v
 	}
 	return *cfg
 }
@@ -111,32 +103,25 @@ var OpsManagerConfigSchema = &schema.Resource{
 		"overrides": {
 			Type:     schema.TypeMap,
 			Optional: true,
-			// TODO(mihaibojin): validate: ensure central_url and mongo_uri cannot be set here
+			// TODO(mihaibojin): validate: central_url and mongo_uri should not be set here
 		},
-		"register_first_user": {
+		"register_global_owner": {
 			Type:     schema.TypeBool,
 			Optional: true,
 			Default:  true,
 		},
-		"first_user_password": {
-			Type:     schema.TypeString,
-			Optional: true,
-		},
-		"ops_manager_port": {
-			Type:     schema.TypeInt,
-			Optional: true,
-		}, "ops_user_username": {
+		"global_owner_username": {
 			Type:     schema.TypeString,
 			Optional: true,
 			Default:  "admin",
-		}, "ops_user_firstname": {
+		},
+		"global_owner_password": {
 			Type:     schema.TypeString,
 			Optional: true,
-			Default:  "adminFirst",
-		}, "ops_user_lastname": {
-			Type:     schema.TypeString,
+		},
+		"external_port": {
+			Type:     schema.TypeInt,
 			Optional: true,
-			Default:  "adminLast",
 		},
 		"mms_group_id": {
 			Type:     schema.TypeString,

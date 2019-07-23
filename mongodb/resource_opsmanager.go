@@ -6,7 +6,6 @@ import (
 	"fmt"
 	"log"
 	"math/rand"
-	"net/url"
 	"path"
 	"path/filepath"
 	"strconv"
@@ -60,8 +59,8 @@ func resourceMdbOpsManagerCreate(data *schema.ResourceData, meta interface{}) er
 		return fmt.Errorf("could not create a SSH client: %v", err)
 	}
 
-	// attempt to create the work directory
-	cmd := fmt.Sprintf("mkdir -p %s", omConfig.WorkDir)
+	// create the working directory and set the appropriate permissions
+	cmd := fmt.Sprintf("bash -c \"mkdir -p %[1]s && chown $(whoami) %[1]s && chmod 0775 %[1]s\"", omConfig.WorkDir)
 	ssh.PanicOnError(client.RunCommand(conn.SudoPrefix(cmd)))
 
 	// download Ops Manager
@@ -119,11 +118,14 @@ func resourceMdbOpsManagerCreate(data *schema.ResourceData, meta interface{}) er
 		})
 	util.PanicOnNonNilErr(err)
 
+	// create the AVD, if specified as an override
+	ensureAutomationVersionsDirectory(omConfig, client, conn)
+
 	// upload the encryption key
 	remoteEncKeyPath := "/etc/mongodb-mms/gen.key"
 	remoteTempFile := "~/gen.key"
 	// create the encryption key's directory
-	cmd = fmt.Sprintf("mkdir -p %s", filepath.Dir(remoteEncKeyPath))
+	cmd = fmt.Sprintf("mkdir -p %[1]s", filepath.Dir(remoteEncKeyPath))
 	ssh.PanicOnError(client.RunCommand(conn.SudoPrefix(cmd)))
 	// store the encryption key to a temp file, always ensuring no more than 24 bytes are selected
 	escaped := strings.Replace(omConfig.EncryptionKey[0:24], "'", "\\'", -1)
@@ -133,7 +135,11 @@ func resourceMdbOpsManagerCreate(data *schema.ResourceData, meta interface{}) er
 	// upload the file
 	ssh.PanicOnError(client.UploadFile(remoteTempFile, encKeyFile))
 	// move the file to its final location and set the correct perms
-	cmd = fmt.Sprintf("bash -c 'mv %[1]s %[2]s; chown mongodb-mms:mongodb-mms %[2]s; chmod 0600 %[2]s'", remoteTempFile, remoteEncKeyPath)
+	cmd = fmt.Sprintf("bash -c \"mv %[1]s %[2]s; chown mongodb-mms:mongodb-mms %[2]s; chmod -R 0550 %[2]s\"", remoteTempFile, path.Base(remoteEncKeyPath))
+	ssh.PanicOnError(client.RunCommand(conn.SudoPrefix(cmd)))
+
+	// set the correct owner on all Ops Manager files
+	cmd = fmt.Sprintf("chown -R mongodb-mms:mongodb-mms %[1]s", omConfig.WorkDir)
 	ssh.PanicOnError(client.RunCommand(conn.SudoPrefix(cmd)))
 
 	// start the Ops Manager service
@@ -147,15 +153,16 @@ func resourceMdbOpsManagerCreate(data *schema.ResourceData, meta interface{}) er
 	log.Printf("[DEBUG] confirmed connection to the Ops Manager port: %d", omConfig.Port)
 
 	// create first user if option was passed
-	if omConfig.RegisterFirstUser {
-		// create the first user via the client with noauth
-		apiURL := fmt.Sprintf("http://%s:%d", conn.Hostname, omConfig.OpsManagerPort)
+	if omConfig.RegisterGlobalOwner {
+		// TODO(mihaibojin): temporary fix to address OM port != exposed port
+		apiURL := fmt.Sprintf("http://%s:%d", conn.Hostname, omConfig.ExternalPort)
 		resolver := httpclient.NewURLResolverWithPrefix(apiURL, opsmanager.PublicAPIPrefix)
+		omAPIClientNoAuth := opsmanager.NewDefaultClient(resolver)
 
 		// create the first user
-		omAPIClientNoAuth := opsmanager.NewDefaultClient(resolver)
-		user := opsmanager.User{Username: omConfig.Username, Password: omConfig.FirstUserPassword, FirstName: omConfig.Firstname, LastName: omConfig.Lastname}
-		apiFirstUserResp, err := omAPIClientNoAuth.CreateFirstUser(user, url.QueryEscape("0.0.0.1/0"))
+		firstName, lastName, emailAddress := util.TryExtractFirstLastNameAndEmail(omConfig.GlobalOwnerUsername)
+		user := opsmanager.User{Username: omConfig.GlobalOwnerUsername, Password: omConfig.GlobalOwnerPassword, FirstName: firstName, LastName: lastName, EmailAddress: emailAddress}
+		apiFirstUserResp, err := omAPIClientNoAuth.CreateFirstUser(user, "0.0.0.1/0")
 		if err != nil {
 			return fmt.Errorf("failed to create first user: %v", err)
 		}
@@ -183,7 +190,7 @@ func resourceMdbOpsManagerCreate(data *schema.ResourceData, meta interface{}) er
 			return fmt.Errorf("failed to reconstruct OM schema: %v", err)
 		}
 
-		s := []interface{}{}
+		var s []interface{}
 		s = append(s, deconstructed)
 
 		if err = data.Set("opsmanager", s); err != nil {
@@ -250,9 +257,26 @@ func updatePropertiesFile(client *ssh.Client, conn types.RemoteConnection, remot
 	configData, err := config.Write()
 	util.PanicOnNonNilErr(err)
 
+	// temporarily set file permissions to 0777
+	cmd := fmt.Sprintf("chmod 0777 %[1]s", remoteFile)
+	ssh.PanicOnError(client.RunCommand(conn.SudoPrefix(cmd)))
+
 	// upload the config file to the remote host
 	ssh.PanicOnError(client.UploadData(remoteFile, bufio.NewReader(strings.NewReader(configData))))
 	log.Printf("[DEBUG] uploaded the config file to the remote host, at: %s", remoteFile)
 
+	// revert permissions to 0755
+	cmd = fmt.Sprintf("chmod 0755 %[1]s", remoteFile)
+	ssh.PanicOnError(client.RunCommand(conn.SudoPrefix(cmd)))
+
 	return nil
+}
+
+// ensureAutomationVersionsDirectory creates the automation versions directory if specified as an override
+func ensureAutomationVersionsDirectory(cfg types.OpsManagerConfig, client *ssh.Client, conn types.RemoteConnection) {
+	if avd, ok := cfg.Overrides["automation.versions.directory"]; ok {
+		// create the automation directory
+		cmd := fmt.Sprintf("bash -c \"mkdir -p %[1]s && chown mongodb-mms:mongodb-mms %[1]s && chmod 0775 %[1]s\"", avd)
+		ssh.PanicOnError(client.RunCommand(conn.SudoPrefix(cmd)))
+	}
 }

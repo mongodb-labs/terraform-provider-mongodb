@@ -29,6 +29,12 @@ output "ssh_private_key" {
   description = "The ssh private key used to connect to the instance."
   sensitive = true
 }
+output "global_owner_password" {
+  # Export with $(terraform output global_owner_password)
+  value = random_string.globalownerpassword.result
+  description = "The password used for the auto-generated global owner account."
+  sensitive = true
+}
 
 # Deploy an AWS EC2 AMI
 
@@ -39,13 +45,15 @@ data "aws_ami" "base_ami" {
   filter {
     name = "name"
     values = [
-      "RHEL-7.6_HVM_GA*"]
+      "RHEL-7.6_HVM_GA*"
+    ]
   }
 
   filter {
     name = "virtualization-type"
     values = [
-      "hvm"]
+      "hvm"
+    ]
   }
 
   owners = [
@@ -90,23 +98,29 @@ resource "aws_instance" "mdb0-0" {
     inline = [
       # ensure the instance is actually ready and log the time
       "echo ready_at=$(date -u +'%Y-%m-%dT%H:%M:%S.%3N%z') >> instance.log",
+      # the OM 4.0 AA looks for libsasl2.so.2; link it
+      "sudo ln -s /usr/lib64/libsasl2.so.3 /usr/lib64/libsasl2.so.2 || echo 'Could not link libsasl2.so'"
     ]
   }
 }
 
 
 # Deploy a MongoDB standalone
+locals {
+  appdb_bind_ip = "127.0.0.1"
+  ssh_port = 22
+}
 resource "mongodb_process" "mdb_standalone" {
   host {
     user = var.aws_ssh_username
     hostname = aws_instance.mdb0-0.public_ip
-    port = 22
+    port = local.ssh_port
     private_key = tls_private_key.ssh_credentials.private_key_pem
   }
 
   mongod {
     binary = "https://fastdl.mongodb.org/linux/mongodb-linux-x86_64-rhel70-4.0.10.tgz"
-    bindip = "127.0.0.1"
+    bindip = local.appdb_bind_ip
     port = 27017
     workdir = "/opt/mongodb"
   }
@@ -118,7 +132,6 @@ resource "random_string" "encryptionkey" {
   length = 24
   special = true
 }
-
 resource "random_string" "globalownerpassword" {
   length = 12
   min_lower = 1
@@ -132,14 +145,14 @@ resource "mongodb_opsmanager" "opsman" {
   host {
     user = var.aws_ssh_username
     hostname = aws_instance.mdb0-0.public_ip
-    port = 22
+    port = local.ssh_port
     private_key = tls_private_key.ssh_credentials.private_key_pem
   }
 
   opsmanager {
     binary = "https://downloads.mongodb.com/on-prem-mms/rpm/mongodb-mms-4.0.13.50537.20190703T1029Z-1.x86_64.rpm"
     workdir = "/opt/mongodb"
-    mongo_uri = "mongodb://${mongodb_process.mdb_standalone.host.0.hostname}:${mongodb_process.mdb_standalone.mongod.0.port}/"
+    mongo_uri = "mongodb://${local.appdb_bind_ip}:${mongodb_process.mdb_standalone.mongod.0.port}/"
     encryption_key = random_string.encryptionkey.result
     port = local.ops_manager_port
     external_port = local.ops_manager_port
@@ -169,7 +182,7 @@ resource "mongodb_automation_agent" "automation_agent" {
   host {
     user = var.aws_ssh_username
     hostname = aws_instance.mdb0-0.public_ip
-    port = 22
+    port = local.ssh_port
     private_key = tls_private_key.ssh_credentials.private_key_pem
   }
 
