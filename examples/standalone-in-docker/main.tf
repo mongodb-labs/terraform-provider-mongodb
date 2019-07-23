@@ -4,6 +4,15 @@ provider "docker" {
 }
 
 
+# Declare variables and outputs
+output "global_owner_password" {
+  # Export with $(terraform output global_owner_password)
+  value = random_string.globalownerpassword.result
+  description = "The password used for the auto-generated global owner account."
+  sensitive = true
+}
+
+
 # Create a container
 resource "docker_container" "mdb0-0" {
   name = "qa_ubuntu1804"

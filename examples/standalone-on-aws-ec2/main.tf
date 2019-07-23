@@ -29,6 +29,12 @@ output "ssh_private_key" {
   description = "The ssh private key used to connect to the instance."
   sensitive = true
 }
+output "global_owner_password" {
+  # Export with $(terraform output global_owner_password)
+  value = random_string.globalownerpassword.result
+  description = "The password used for the auto-generated global owner account."
+  sensitive = true
+}
 
 # Deploy an AWS EC2 AMI
 
@@ -39,13 +45,15 @@ data "aws_ami" "base_ami" {
   filter {
     name = "name"
     values = [
-      "RHEL-7.6_HVM_GA*"]
+      "RHEL-7.6_HVM_GA*"
+    ]
   }
 
   filter {
     name = "virtualization-type"
     values = [
-      "hvm"]
+      "hvm"
+    ]
   }
 
   owners = [
@@ -90,6 +98,8 @@ resource "aws_instance" "mdb0-0" {
     inline = [
       # ensure the instance is actually ready and log the time
       "echo ready_at=$(date -u +'%Y-%m-%dT%H:%M:%S.%3N%z') >> instance.log",
+      # the OM 4.0 AA looks for libsasl2.so.2; link it
+      "sudo ln -s /usr/lib64/libsasl2.so.3 /usr/lib64/libsasl2.so.2 || echo 'Could not link libsasl2.so'"
     ]
   }
 }
@@ -98,12 +108,13 @@ resource "aws_instance" "mdb0-0" {
 # Deploy a MongoDB standalone
 locals {
   appdb_bind_ip = "127.0.0.1"
+  ssh_port = 22
 }
 resource "mongodb_process" "mdb_standalone" {
   host {
     user = var.aws_ssh_username
     hostname = aws_instance.mdb0-0.public_ip
-    port = 22
+    port = local.ssh_port
     private_key = tls_private_key.ssh_credentials.private_key_pem
   }
 
@@ -121,7 +132,6 @@ resource "random_string" "encryptionkey" {
   length = 24
   special = true
 }
-
 resource "random_string" "globalownerpassword" {
   length = 12
   min_lower = 1
@@ -135,7 +145,7 @@ resource "mongodb_opsmanager" "opsman" {
   host {
     user = var.aws_ssh_username
     hostname = aws_instance.mdb0-0.public_ip
-    port = 22
+    port = local.ssh_port
     private_key = tls_private_key.ssh_credentials.private_key_pem
   }
 
@@ -172,7 +182,7 @@ resource "mongodb_automation_agent" "automation_agent" {
   host {
     user = var.aws_ssh_username
     hostname = aws_instance.mdb0-0.public_ip
-    port = 22
+    port = local.ssh_port
     private_key = tls_private_key.ssh_credentials.private_key_pem
   }
 

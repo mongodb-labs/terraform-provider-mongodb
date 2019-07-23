@@ -18,10 +18,10 @@ stop-container:
 	-docker rm -f "$(CONTAINER_ID)"
 
 remove-all-containers:
-	-docker ps -f 'label=ns=mongodb-terraform' -q | xargs docker rm -f
+	-docker ps -f 'label=ns=$(TEST_NAMESPACE)' -q | xargs docker rm -f
 
 remove-all-images:
-	-docker images -f 'label=ns=mongodb-terraform' -q | xargs docker rmi -f
+	-docker images -f 'label=ns=$(TEST_NAMESPACE)' -q | xargs docker rmi -f
 
 ssh-container:
 	@docker exec -it $(TEST_CONTAINER) bash
