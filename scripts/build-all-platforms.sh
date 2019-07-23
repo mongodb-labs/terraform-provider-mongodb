@@ -6,19 +6,23 @@ platforms=("linux/amd64" "windows/amd64" "darwin/amd64")
 
 # Compute a version string based on GIT data
 function git_version_string() {
+  local version
+  local gitsha
+  local tag
+
   gitsha="$(git log -n1 --pretty='%h')"
   tag=$(git describe --exact-match --tags "${gitsha}" 2>/dev/null || echo "")
   if [ -n "$tag" ]; then
     # The current commit is tagged
-    version="${tag}"
+    version="${tag#v}"
   else
     # Otherwise use the short git sha
     version="${gitsha}"
   fi
 
-  if ! git diff-index --quiet HEAD --; then
+  if ! git diff --quiet; then
     # If we have changes in the working directory, augment the version string
-    version="${version}-modified"
+    version="${version}-dirty"
   fi
 
   echo "$version"
@@ -35,7 +39,7 @@ if [ -d "${output}" ]; then
 fi
 
 # Augment output with package name and version
-output_package="${output}/terraform-provider-${PKG_NAME}_v${version}"
+output_package="terraform-provider-${PKG_NAME}_${version}"
 
 # Based on https://www.digitalocean.com/community/tutorials/how-to-build-go-executables-for-multiple-platforms-on-ubuntu-16-04
 for platform in "${platforms[@]}"; do
@@ -45,17 +49,23 @@ for platform in "${platforms[@]}"; do
   GOARCH="${platform_split[1]}"
 
   output_name="${output_package}"
+
+  suffix=""
   if [ "${GOOS}" = "windows" ]; then
-    output_name+=".exe"
+    suffix=".exe"
   fi
 
   echo "Building and compressing ${output_name} ..."
-  env GOOS="${GOOS}" GOARCH="${GOARCH}" CGO_ENABLED=0 go build -a -o "${output_name}"
-  zip -m "${output_name}_${GOOS}_${GOARCH}" "${output_name}"
+  env GOOS="${GOOS}" GOARCH="${GOARCH}" CGO_ENABLED=0 go build -a -o "${output}/${output_name}${suffix}"
+  push "${output}" >/dev/null
+  zip -m "${output_name}_${GOOS}_${GOARCH}.zip" "${output_name}${suffix}"
+  popd >/dev/null 2>&1
   echo
 done
 
 echo "Generating SHA256SUMS..."
-sha256sum -b "${output}/"* >"${output_name}_SHA256SUMS"
+push "${output}" >/dev/null
+sha256sum -b ./* >"${output_name}_SHA256SUMS"
+popd >/dev/null 2>&1
 
 echo "Done."
