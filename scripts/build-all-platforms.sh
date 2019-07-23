@@ -57,14 +57,14 @@ for platform in "${platforms[@]}"; do
 
   echo "Building and compressing ${output_name} ..."
   env GOOS="${GOOS}" GOARCH="${GOARCH}" CGO_ENABLED=0 go build -a -o "${output}/${output_name}${suffix}"
-  push "${output}" >/dev/null
+  pushd "${output}" >/dev/null
   zip -m "${output_name}_${GOOS}_${GOARCH}.zip" "${output_name}${suffix}"
   popd >/dev/null 2>&1
   echo
 done
 
 echo "Generating SHA256SUMS..."
-push "${output}" >/dev/null
+pushd "${output}" >/dev/null
 sha256sum -b ./* >"${output_name}_SHA256SUMS"
 popd >/dev/null 2>&1
 
