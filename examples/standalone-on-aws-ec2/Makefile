@@ -28,7 +28,7 @@ private-key:
 	@echo $(TMP_FILE)
 
 ssh:
-	@$(eval SSHHOST = $(shell TF_LOG=ERROR terraform output hostname-mdb0-1))
+	@$(eval SSHHOST = $(shell TF_LOG=ERROR terraform output hostname-mdb0-0))
 	@echo "==> Connecting to $(SSHHOST) ..."
 	@$(eval PKEY = $(shell make private-key))
 	@ssh -i $(PKEY) -o StrictHostKeyChecking=no -o UserKnownHostsFile=/dev/null ec2-user@$(SSHHOST)
