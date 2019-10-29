@@ -83,17 +83,27 @@ curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 
 Ensure `$GOROOT/bin` is in your path.
 
-2. Install the git hooks, to automatically fix linting issues and flag any errors 
+2. Install the following tools
+
+```
+# GoLint
+go get -u golang.org/x/lint/golint
+
+# Golangci-lint
+curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh| sh -s -- -b $(go env GOPATH)/bin v1.21.0
+```
+
+3. Install the git hooks, to automatically fix linting issues and flag any errors 
 
 `make link-git-hooks`
 
-3. Download and install [Docker](https://hub.docker.com/editions/community/docker-ce-desktop-mac)
+4. Download and install [Docker](https://hub.docker.com/editions/community/docker-ce-desktop-mac)
 
-4. Download and install [GoLand](https://www.jetbrains.com/go/nextversion/)
+5. Download and install [GoLand](https://www.jetbrains.com/go/nextversion/)
 
 NOTE: Goland is not a requirement; you could also use [Visual Studio Code](https://code.visualstudio.com/) or any other editor.
 
-5. Install the following plugins
+6. Install the following plugins
 - Hashicorp Terraform HCL
 - Makefile support
 - Save actions
@@ -103,7 +113,7 @@ NOTE: Goland is not a requirement; you could also use [Visual Studio Code](https
   - reformat your code 
   - and to optimize imports
 
-6. Import the project
+7. Import the project
 
 - `cd /path/to/git && git clone ...`
 - File -> New -> Project
@@ -123,7 +133,7 @@ Open _File Watchers_ and add the following to the current project:
   - terraform fmt
   - custom: golint (see [this post](https://github.com/vmware/dispatch/wiki/Configure-GoLand-with-golint))
 
-7. Run an E2E test
+8. Run an E2E test
 
 **Prerequisite:**
 
