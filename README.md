@@ -1,6 +1,8 @@
 MongoDB Terraform Provider
 ===================================
 
+[![Build Status](https://cloud.drone.io/api/badges/mongodb-labs/terraform-provider-mongodb/status.svg)](https://cloud.drone.io/mongodb-labs/terraform-provider-mongodb)
+
 A [Terraform Provider](https://www.terraform.io/docs/providers/index.html) for MongoDB Cloud resources.
 
 **This project is currently in development and is not yet ready for production use.**
@@ -76,7 +78,7 @@ Pull requests are always welcome! Please read our [contributor guide](./CONTRIB.
 
 The steps below should help you get started.  They have been tested on MacOS, but should work on Linux systems as well (with minor adaptations.)
 
-1. Install GO
+1. Install GO (1.13+)
 ```
 curl https://raw.githubusercontent.com/golang/dep/master/install.sh | sh
 ```
