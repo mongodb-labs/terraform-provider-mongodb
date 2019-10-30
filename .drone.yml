@@ -1,0 +1,23 @@
+---
+kind: pipeline
+type: docker
+name: linux-amd64
+
+platform:
+  arch: amd64
+  os: linux
+
+steps:
+  - name: build-and-test
+    image: golang:1.13.3-buster
+    commands:
+      - go get -u golang.org/x/lint/golint
+      - curl -sfL https://raw.githubusercontent.com/golangci/golangci-lint/master/install.sh| sh -s -- -b $(go env GOPATH)/bin v1.21.0
+      - make clean build
+
+trigger:
+  branch:
+    - master
+  event:
+    - push
+    - pull_request
