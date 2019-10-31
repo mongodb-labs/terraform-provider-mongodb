@@ -17,7 +17,7 @@ debugacc: fmtcheck
 	TF_ACC=1 dlv test $(TEST) -- -test.v $(TESTARGS)
 
 vet:
-	@echo "go vet ."
+	@echo "==> go vet"
 	@go vet $$(go list ./... | grep -v vendor/) ; if [ $$? -eq 1 ]; then \
 		echo ""; \
 		echo "Vet found suspicious constructs. Please check the reported constructs"; \
@@ -69,7 +69,7 @@ clean:
 	rm -rf out
 	go clean ./...
 
-build: fmtcheck errcheck lint test
+build: fmtcheck errcheck lint vet test
 	mkdir -p out
 	go build -o out/terraform-provider-$(PKG_NAME)
 
