@@ -1,4 +1,4 @@
-MongoDB Terraform Provider
+Test
 ===================================
 
 [![Build Status](https://cloud.drone.io/api/badges/mongodb-labs/terraform-provider-mongodb/status.svg)](https://cloud.drone.io/mongodb-labs/terraform-provider-mongodb)
